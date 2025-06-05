@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "agent": "./langgraph_server.py:graph",
+    "open_data_agent": "./open_data_server.py:graph"
+  },
+  "env": ".env"
+} 
