@@ -168,7 +168,7 @@ The Open Data Agent is built using:
 Key files:
 - `open_data_server.py`: Main agent implementation
 - `langgraph.json`: Graph configuration
-- `mcp_ckan_server.py`: MCP server implementation (alternative approach)
+- `src/mcp/opengov_open_data_mcp_server.py`: MCP server implementation (alternative approach)
 
 ## Troubleshooting
 

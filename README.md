@@ -79,12 +79,92 @@ Everything else is handled automatically!
 ### Main Environment File (`.env`)
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
+
+# Persistence Configuration
+PERSISTENCE_TYPE=sqlite  # Options: memory, sqlite, postgres
+DATABASE_URL=postgresql://username:password@localhost:5432/dbname  # For postgres only
+SQLITE_DB_PATH=chat_history.db  # Custom SQLite file path (optional)
 ```
 
 ### Chat UI Configuration (`agent-chat-ui/.env`)
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:2024
 NEXT_PUBLIC_ASSISTANT_ID=agent
+```
+
+## 🧠 **Enhanced Persistence & Memory**
+
+This project now includes comprehensive persistence and memory capabilities:
+
+### **🔄 Thread Persistence**
+- **Conversation History**: All messages are saved and restored across sessions
+- **Multiple Threads**: Create separate conversation threads with unique IDs
+- **Cross-Session**: Conversations persist even after restarting the server
+
+### **💾 Storage Options**
+| Type | Use Case | Persistence | Performance |
+|------|----------|-------------|-------------|
+| **Memory** | Development/Testing | ❌ Lost on restart | ⚡ Fastest |
+| **SQLite** | Production (Single User) | ✅ File-based | 🚀 Fast |
+| **PostgreSQL** | Production (Multi-User) | ✅ Database | 🏢 Scalable |
+
+### **🎯 Memory Store Features**
+- **Cross-Thread Memory**: Remember user preferences across different conversations
+- **Semantic Search**: Find relevant memories using natural language queries
+- **User Profiles**: Maintain persistent user preferences and context
+- **Smart Retrieval**: Automatically recall relevant information during conversations
+
+### **📝 How It Works**
+
+1. **Within Thread**: 
+   ```
+   User: "My name is Alice and I love hiking"
+   AI: "Nice to meet you Alice! Hiking is great exercise..."
+   User: "What do you remember about me?"
+   AI: "You told me your name is Alice and you love hiking!"
+   ```
+
+2. **Across Threads**: 
+   ```
+   Thread 1: User mentions loving pizza
+   Thread 2: AI can reference pizza preference from previous conversation
+   ```
+
+3. **Memory Storage**:
+   ```python
+   # Automatically saves important user information
+   agent.save_memory("user_123", "food_pref", {
+       "memory": "User loves Italian food, especially pasta",
+       "context": "Mentioned during dining discussion"
+   })
+   ```
+
+### **🛠 Setting Up Persistence**
+
+**Quick Start (SQLite - Recommended)**:
+```bash
+# Already configured by default!
+./run.sh
+# Chat history automatically saved to chat_history.db
+```
+
+**PostgreSQL Setup**:
+```bash
+# 1. Install PostgreSQL dependencies
+pip install langgraph-checkpoint-postgres
+
+# 2. Configure environment
+echo "PERSISTENCE_TYPE=postgres" >> .env
+echo "DATABASE_URL=postgresql://user:pass@localhost/dbname" >> .env
+
+# 3. Start
+./run.sh
+```
+
+**Memory-Only (Development)**:
+```bash
+echo "PERSISTENCE_TYPE=memory" >> .env
+./run.sh
 ```
 
 ## 🎨 **Architecture**

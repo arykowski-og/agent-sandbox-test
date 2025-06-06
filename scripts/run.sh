@@ -5,7 +5,7 @@ echo "🚀 Starting LangGraph Agent + Chat UI..."
 echo "====================================="
 
 # Check if virtual environment exists, create if not
-VENV_DIR="./langgraph_agent/langgraph_env"
+VENV_DIR="./app/langgraph_agent/langgraph_env"
 if [ ! -d "$VENV_DIR" ]; then
     echo "📦 Virtual environment not found. Creating it..."
     
@@ -18,7 +18,7 @@ if [ ! -d "$VENV_DIR" ]; then
     echo "✅ Python 3 found: $(python3 --version)"
     
     # Create virtual environment
-    mkdir -p ./langgraph_agent
+    mkdir -p ./app/langgraph_agent
     python3 -m venv $VENV_DIR
     
     # Activate and install dependencies
@@ -38,17 +38,17 @@ if [ ! -f ".env" ]; then
 fi
 
 # Check if agent-chat-ui exists
-if [ ! -d "agent-chat-ui" ]; then
-    echo "❌ agent-chat-ui directory not found. Please ensure it's in the project root."
+if [ ! -d "app/agent-chat-ui" ]; then
+    echo "❌ app/agent-chat-ui directory not found. Please ensure it's in the app/ directory."
     exit 1
 fi
 
 # Check if agent-chat-ui dependencies are installed
-if [ ! -d "agent-chat-ui/node_modules" ]; then
+if [ ! -d "app/agent-chat-ui/node_modules" ]; then
     echo "📦 Installing Chat UI dependencies..."
-    cd agent-chat-ui
+    cd app/agent-chat-ui
     pnpm install
-    cd ..
+    cd ../..
     echo "✅ Chat UI dependencies installed"
 fi
 
@@ -103,12 +103,12 @@ fi
 
 echo "🔄 Starting Chat UI..."
 # Start Chat UI in background
-cd agent-chat-ui
+cd app/agent-chat-ui
 (
     pnpm dev 2>&1 | sed 's/^/[Chat UI] /' &
-    echo $! > ../.chatui_pid
+    echo $! > ../../.chatui_pid
 ) &
-cd ..
+cd ../..
 
 echo "⏳ Waiting for Chat UI to start..."
 sleep 10
@@ -133,7 +133,7 @@ echo "   🌐 URL: http://localhost:3000"
 echo "   🧪 Test: Try asking 'What's the weather in Paris?'"
 echo ""
 echo "⚡ Quick Commands:"
-echo "   • Stop servers: Ctrl+C or ./stop.sh"
+echo "   • Stop servers: Ctrl+C or ./scripts/stop.sh"
 echo "   • View logs: Check terminal output above"
 echo ""
 echo "🔍 Monitoring both servers... Press Ctrl+C to stop"

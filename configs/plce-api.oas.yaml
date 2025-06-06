@@ -1,0 +1,468 @@
+openapi: 3.1.0
+info:
+  version: "2.0.0"
+  title: "Permitting & Licensing API v2"
+  contact:
+    name: "OpenGov Permitting & Licensing API"
+    url: "https://opengov.com"
+    email: "developers@opengov.com"
+  description: |
+    The OpenGov Permitting & Licensing API
+  # TODO: Check what should be here
+  license:
+    name: "OpenGov Permitting & Licensing API"
+    url: "https://opengov.com"
+
+servers:
+  - url: "https://api.plce.ogstaging.us/plce-dome"
+    description: Staging
+  - url: "https://api.plce.opengov.com/plce-dome"
+    description: Production
+
+tags:
+  - name: Approval Steps
+    description: "Approval Task APIs allow you to work with approval tasks of a record's workflow"
+
+  - name: Checklist Results
+    description: "Checklist Result APIs allow you to work with checklist results for inspections"
+
+  - name: Checklist Templates
+    description: "Checklist Template APIs allow you to work with checklist configurations for inspections"
+
+  - name: Departments
+    description: "Department APIs allow you to work with departments within the organization"
+
+  - name: Document Steps
+    description: "Document Step APIs allow you to work with document generation tasks of a record's workflow"
+
+  - name: DocumentGeneration
+    description: "Document Generation Task APIs allow you to work with document generation tasks of a record's workflow"
+
+  - name: Fees
+    description: "Fee APIs allow you to work with fees associated with records"
+
+  - name: Files
+    description: |
+      Files in OpenGov Permitting & Licensing are managed in a two-step process:
+
+      1. **File Upload**
+         - First, create a file entry to receive a pre-signed Azure Blob Storage URL
+         - Use this URL to upload your file directly to Azure Blob Storage
+         - The file is now stored but not yet associated with any entity
+
+      2. **File Association**
+         - Associate the uploaded file with an entity (currently only Record Attachments)
+         - The file is cloned when associated, allowing the same file to be reused across different entities
+         - Each association creates a new file object with its own lifecycle
+
+      This design allows for efficient file reuse while maintaining independent file management for each entity.
+
+  - name: Inspection Events
+    description: "Inspection Event APIs allow you to work with inspection events"
+
+  - name: Inspection Results
+    description: "Inspection Result APIs allow you to work with inspection results"
+
+  - name: Inspection Steps
+    description: "Inspection Step APIs allow you to work with inspection steps"
+
+  - name: Inspection Type Templates
+    description: "Inspection Type Template APIs allow you to work with inspection template configurations"
+
+  - name: Inspection Types
+    description: "Inspection Type APIs allow you to work with inspection type configurations"
+
+  - name: Inspections
+    description: "Inspection Task APIs allow you to work with inspection tasks of a record's workflow"
+
+  - name: Integrations
+    description: "Integration Task APIs allow you to work with integration tasks of a record's workflow"
+
+  - name: Issued Documents
+    description: "Issued Document APIs allow you to work with documents generated and issued from records"
+
+  - name: Ledger Entries
+    description: "Ledger Entry APIs allow you to work with accounting ledger entries"
+
+  - name: Location Flags
+    description: "Location Flag APIs allow you to work with flags associated with locations"
+
+  - name: Locations
+    description: "Location APIs allow you to work with locations associated with records"
+
+  - name: Organization
+    description: "Organization APIs allow you to retrieve information about the organization"
+
+  - name: Payment Steps
+    description: "Payment Step APIs allow you to work with payment tasks of a record's workflow"
+
+  - name: Payments
+    description: "Payment Task APIs allow you to work with payment tasks of a record's workflow"
+
+  - name: Projects
+    description: "Project APIs allow you to work with projects that group related records"
+
+  - name: Record
+    description: |+
+      **Records** are created in the OpenGov Permitting & Licensing Employee Portal and/or Citizen Portal.
+
+      A **Record** can have a **Form**, a **Workflow**, one or more public **Contacts** (the applicant and any guests), and one or more **Locations**.
+
+  - name: Record Additional Locations
+    description: |
+      A Record can be associated with one **Primary Location** and up to 99 **Additional Locations**.
+
+      Record Locations reference **Locations**.
+
+  - name: Record Applicant
+    description: |+
+      The Applicant is the public user who submitted a Record. The Applicant or any employee user can add Guests to a Record.
+
+  - name: Record Attachments
+    description: |+
+      A Record can have attachments which are either named or ad-hoc. Each attachment can have one or more versions.
+
+  - name: Record Change Requests
+    description: "Record Change Request APIs allow you to work with change requests for records"
+
+  - name: Record Forms
+    description: |+
+      A Record's **Form** is based on its **Record Type**.
+
+      A Form is comprised of **Fields** which are contained within **Sections**. Each Field is of a specific data Type, and has a **Label** and a **Value**.
+
+  - name: Record Guests
+    description: |+
+      Additional users who need visibility into the permit/license process. This could include
+      contractors, architects, property owners, or other stakeholders who need to track the application's progress,
+      receive updates, or help manage the application. For example, a homeowner (Applicant) might add their
+      contractor (Guest) to a building permit to help upload revised plans or respond to inspector comments.
+      A record can have up to 10 Guests.
+
+  - name: Record Primary Location
+    description: |
+      A Record can be associated with one **Primary Location** and up to 99 **Additional Locations**.
+
+      Record Locations reference **Locations**.
+  - name: Record Type Attachments
+    description: "Record Type Attachment APIs allow you to work with attachment configurations for record types"
+
+  - name: Record Type Document Templates
+    description: "Record Type Document Template APIs allow you to work with document template configurations"
+
+  - name: Record Type Fees
+    description: "Record Type Fee APIs allow you to work with fee configurations for record types"
+
+  - name: Record Type Form
+    description: "Record Type Form APIs allow you to work with form configurations for record types"
+
+  - name: Record Type Workflow
+    description: "Record Type Workflow APIs allow you to work with workflow configurations for record types"
+
+  - name: Record Types
+    description: "Record Type APIs allow you to work with record type configurations"
+
+  - name: Record Workflow Step Comments
+    description: "Step Comments APIs allow you to retrieve,
+      add or remove comments on workflow steps of a record."
+
+  - name: Record Workflow Steps
+    description: |
+      A Record's Workflow is represented as a collection of **Steps**. Steps are automatically created on a Record at the time it is submitted, based on the Workflow Template defined in the Record Type settings of that Record's Type.
+
+      Steps are instantiated on Records and can be added or deleted on individual Records, so a given Record's Steps may not always match its Workflow Template.
+
+  - name: Transactions
+    description: "Transaction APIs allow you to work with payment transactions"
+
+  - name: User Flags
+    description: "User Flag APIs allow you to work with flags associated with users"
+
+  - name: Users
+    description: "User APIs allow you to work with users in the system"
+
+x-tagGroups:
+  - name: Records
+    tags:
+      - Record
+      - Record Applicant
+      - Record Guests
+      - Record Primary Location
+      - Record Additional Locations
+      - Record Forms
+      - Record Change Requests
+      - Record Attachments
+      - Record Workflow Steps
+      - Record Workflow Step Comments
+  - name: Locations
+    tags:
+      - Locations
+      - Location Flags
+  - name: Users
+    tags:
+      - Users
+      - User Flags
+  - name: Approvals
+    tags:
+      - Approval Steps
+  - name: Documents
+    tags:
+      - Issued Documents
+      - Document Steps
+  - name: Inspections
+    tags:
+      - Inspection Steps
+      - Inspection Types
+      - Inspection Events
+      - Inspection Results
+      - Checklist Results
+  - name: Payments
+    tags:
+      - Payment Steps
+      - Fees
+      - Transactions
+      - Ledger Entries
+  - name: Projects
+    tags:
+      - Projects
+  - name: Files
+    tags:
+      - Files
+  - name: Configuration
+    tags:
+      - Organization
+      - Departments
+      - Record Types
+      - Record Type Form
+      - Record Type Attachments
+      - Record Type Document Templates
+      - Record Type Fees
+      - Record Type Workflow
+      - Inspection Type Templates
+      - Checklist Templates
+paths:
+  "/v2/{community}/approvalSteps":
+    $ref: components/pathItems/approvalTaskCollection.yaml
+
+  "/v2/{community}/approvalSteps/{approvalStepID}":
+    $ref: components/pathItems/approvalTask.yaml
+
+  "/v2/{community}/departments":
+    $ref: components/pathItems/departmentCollection.yaml
+
+  "/v2/{community}/departments/{departmentID}":
+    $ref: components/pathItems/department.yaml
+
+  "/v2/{community}/documentSteps":
+    $ref: components/pathItems/documentGenerationTaskCollection.yaml
+
+  "/v2/{community}/documentSteps/{documentStepID}":
+    $ref: components/pathItems/documentGenerationTask.yaml
+
+  "/v2/{community}/files":
+    $ref: components/pathItems/fileCollection.yaml
+
+  "/v2/{community}/files/{fileID}":
+    $ref: components/pathItems/file.yaml
+
+  "/v2/{community}/inspectionEvents/{inspectionEventID}":
+    $ref: components/pathItems/inspectionEvent.yaml
+
+  "/v2/{community}/inspectionEvents":
+    $ref: components/pathItems/inspectionEventCollection.yaml
+
+  "/v2/{community}/inspectionResults":
+    $ref: components/pathItems/inspectionResultCollection.yaml
+
+  "/v2/{community}/inspectionResults/{inspectionResultID}":
+    $ref: components/pathItems/inspectionResult.yaml
+
+  "/v2/{community}/inspectionResults/{inspectionResultID}/checklistResults":
+    $ref: components/pathItems/checklistResultCollection.yaml
+
+  "/v2/{community}/inspectionResults/{inspectionResultID}/checklistResults/{checklistResultID}":
+    $ref: components/pathItems/checklistResult.yaml
+
+  "/v2/{community}/inspectionSteps":
+    $ref: components/pathItems/inspectionTaskCollection.yaml
+
+  "/v2/{community}/inspectionSteps/{inspectionStepID}":
+    $ref: components/pathItems/inspectionTask.yaml
+
+  "/v2/{community}/inspectionSteps/{inspectionStepID}/inspectionTypes":
+    $ref: components/pathItems/inspectionTypeCollection.yaml
+
+  "/v2/{community}/inspectionTypeTemplates":
+    $ref: components/pathItems/inspectionTypeTemplateCollection.yaml
+
+  "/v2/{community}/inspectionTypeTemplates/{inspectionTypeTemplateID}":
+    $ref: components/pathItems/inspectionTypeTemplate.yaml
+
+  "/v2/{community}/inspectionTypeTemplates/{inspectionTypeTemplateID}/checklistTemplates":
+    $ref: components/pathItems/checklistTemplateCollection.yaml
+
+  "/v2/{community}/inspectionTypeTemplates/{inspectionTypeTemplateID}/checklistTemplates/{checklistTemplateID}":
+    $ref: components/pathItems/checklistTemplate.yaml
+
+  "/v2/{community}/ledgerEntries":
+    $ref: components/pathItems/paymentLedgerCollection.yaml
+
+  "/v2/{community}/ledgerEntries/{ledgerID}":
+    $ref: components/pathItems/ledgerTask.yaml
+
+  "/v2/{community}/locations":
+    $ref: components/pathItems/locationCollection.yaml
+
+  "/v2/{community}/locations/{locationID}":
+    $ref: components/pathItems/location.yaml
+
+  "/v2/{community}/locations/{locationID}/flags":
+    $ref: components/pathItems/locationFlagCollection.yaml
+
+  "/v2/{community}/organization":
+    $ref: components/pathItems/organization.yaml
+
+  "/v2/{community}/paymentSteps":
+    $ref: components/pathItems/paymentTaskCollection.yaml
+
+  "/v2/{community}/paymentSteps/{paymentStepID}":
+    $ref: components/pathItems/paymentTask.yaml
+
+  "/v2/{community}/paymentSteps/{paymentStepID}/fees":
+    $ref: components/pathItems/paymentFeeCollection.yaml
+
+  "/v2/{community}/paymentSteps/fees/{paymentFeeID}":
+    $ref: components/pathItems/paymentFee.yaml
+
+  "/v2/{community}/projects":
+    $ref: components/pathItems/projectCollection.yaml
+
+  "/v2/{community}/recordTypes":
+    $ref: components/pathItems/recordTypeCollection.yaml
+
+  "/v2/{community}/recordTypes/{recordTypeID}":
+    $ref: components/pathItems/recordType.yaml
+
+  "/v2/{community}/recordTypes/{recordTypeID}/attachments":
+    $ref: components/pathItems/recordTypeAttachmentCollection.yaml
+
+  "/v2/{community}/recordTypes/{recordTypeID}/documentTemplates":
+    $ref: components/pathItems/recordTypeDocumentCollection.yaml
+
+  "/v2/{community}/recordTypes/{recordTypeID}/fees":
+    $ref: components/pathItems/recordTypeFeeCollection.yaml
+
+  "/v2/{community}/recordTypes/{recordTypeID}/form":
+    $ref: components/pathItems/recordTypeFormCollection.yaml
+
+  "/v2/{community}/recordTypes/{recordTypeID}/workflow":
+    $ref: components/pathItems/recordTypeWorkflowCollection.yaml
+
+  "/v2/{community}/recordTypes/{recordTypeID}/workflow/{workflowTemplateID}":
+    $ref: components/pathItems/recordTypeWorkflow.yaml
+
+  "/v2/{community}/recordTypes/attachments/{recordTypeAttachmentID}":
+    $ref: components/pathItems/recordTypeAttachment.yaml
+  
+  "/v2/{community}/recordTypes/documentTemplates/{recordTypeDocumentID}":
+    $ref: components/pathItems/recordTypeDocument.yaml
+
+  "/v2/{community}/recordTypes/fees/{recordTypeFeeID}":
+    $ref: components/pathItems/recordTypeFee.yaml
+
+  "/v2/{community}/records":
+    $ref: components/pathItems/recordCollection.yaml
+
+  "/v2/{community}/records/{recordID}":
+    $ref: components/pathItems/record.yaml
+
+  "/v2/{community}/records/{recordID}/additionalLocations":
+    $ref: components/pathItems/recordAdditionalLocationCollection.yaml
+
+  "/v2/{community}/records/{recordID}/additionalLocations/{locationID}":
+    $ref: components/pathItems/recordAdditionalLocation.yaml
+
+  "/v2/{community}/records/{recordID}/applicant":
+    $ref: components/pathItems/recordApplicantCollection.yaml
+
+  "/v2/{community}/records/{recordID}/attachments":
+    $ref: components/pathItems/recordAttachmentCollection.yaml
+
+  "/v2/{community}/records/{recordID}/attachments/{attachmentID}":
+    $ref: components/pathItems/recordAttachment.yaml
+
+  "/v2/{community}/records/{recordID}/changeRequests":
+    $ref: components/pathItems/recordChangeRequestCollection.yaml
+
+  "/v2/{community}/records/{recordID}/changeRequests/{changeRequestID}":
+    $ref: components/pathItems/recordChangeRequest.yaml
+
+  "/v2/{community}/records/{recordID}/details":
+    $ref: components/pathItems/recordFormCollection.yaml
+
+  "/v2/{community}/records/{recordID}/details/{formFieldID}":
+    $ref: components/pathItems/recordForm.yaml
+
+  "/v2/{community}/records/{recordID}/guests":
+    $ref: components/pathItems/recordGuestCollection.yaml
+
+  "/v2/{community}/records/{recordID}/guests/{userID}":
+    $ref: components/pathItems/recordGuest.yaml
+
+  "/v2/{community}/records/{recordID}/primaryLocation":
+    $ref: components/pathItems/recordPrimaryLocationCollection.yaml
+
+  "/v2/{community}/records/{recordID}/workflowSteps":
+    $ref: components/pathItems/recordStepCollection.yaml
+
+  "/v2/{community}/records/{recordID}/workflowSteps/{stepID}":
+    $ref: components/pathItems/recordStep.yaml
+
+  "/v2/{community}/records/{recordID}/workflowSteps/{stepID}/comments":
+    $ref: components/pathItems/recordStepCommentCollection.yaml
+
+  "/v2/{community}/records/{recordID}/workflowSteps/{stepID}/comments/{commentID}":
+    $ref: components/pathItems/recordStepComment.yaml
+
+  "/v2/{community}/transactions":
+    $ref: components/pathItems/paymentTransactionCollection.yaml
+
+  "/v2/{community}/transactions/{transactionID}":
+    $ref: components/pathItems/transactionTask.yaml
+
+  "/v2/{community}/users":
+    $ref: components/pathItems/userCollection.yaml
+
+  "/v2/{community}/users/{userID}":
+    $ref: components/pathItems/user.yaml
+
+  "/v2/{community}/users/{userID}/flags":
+    $ref: components/pathItems/userFlagCollection.yaml
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        The OpenGov Permitting & Licensing API is authenticated using the OAuth2 Client Credentials flow. Access tokens are provided as a bearer token Authorization header in all API requests.
+        To obtain an access token, you must have an OpenGov-provided Client ID and Client Secret.
+        Access tokens are obtained by making a POST request to `https://accounts.viewpointcloud.com/oauth/token`
+    auth0Prod:
+      type: openIdConnect
+      openIdConnectUrl: https://accounts.viewpointcloud.com/.well-known/openid-configuration
+      description: |
+        The OpenGov Permitting & Licensing API is authenticated using the OAuth2 Client Credentials flow. Access tokens are provided as a bearer token Authorization header in all API requests.
+        To obtain an access token, you must have an OpenGov-provided Client ID and Client Secret.
+    auth0Dev:
+      type: openIdConnect
+      openIdConnectUrl: https://login.vpctest.com/.well-known/openid-configuration
+      description: |
+        The OpenGov Permitting & Licensing API is authenticated using the OAuth2 Client Credentials flow. Access tokens are provided as a bearer token Authorization header in all API requests.
+        To obtain an access token, you must have an OpenGov-provided Client ID and Client Secret.
+
+security:
+  - bearerAuth: []
+  - auth0Prod: []
+  - auth0Dev: []

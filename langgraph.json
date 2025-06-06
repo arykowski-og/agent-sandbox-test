@@ -1,8 +1,15 @@
 {
   "dependencies": ["."],
   "graphs": {
-    "agent": "./langgraph_server.py:graph",
-    "open_data_agent": "./open_data_server.py:graph"
+    "agent": "./src/agents/langgraph_server.py:graph",
+    "open_data_agent": "./src/agents/open_data_agent.py:graph"
   },
-  "env": ".env"
+  "env": ".env",
+  "store": {
+    "index": {
+      "embed": "openai:text-embedding-3-small",
+      "dims": 1536,
+      "fields": ["$"]
+    }
+  }
 } 

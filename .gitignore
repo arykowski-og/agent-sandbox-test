@@ -278,3 +278,4 @@ Dockerfile.local
 # Local development
 .local/
 .cache/ 
+.vercel

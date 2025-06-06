@@ -39,4 +39,4 @@ fi
 rm -f .langgraph_pid .chatui_pid 2>/dev/null
 
 echo "✅ All servers stopped and ports freed"
-echo "🚀 To start again, run: ./run.sh" 
+echo "🚀 To start again, run: ./scripts/run.sh" 

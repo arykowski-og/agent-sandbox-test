@@ -6,7 +6,6 @@ from langgraph.utils.config import RunnableConfig
 from typing import Annotated, TypedDict
 from langgraph.graph.message import add_messages
 from langchain_core.messages import BaseMessage
-
 # Load environment variables
 load_dotenv()
 
@@ -23,11 +22,24 @@ model = init_chat_model(
     temperature=0
 )
 
-# Create the agent WITHOUT checkpointer (LangGraph API handles persistence)
+# Enhanced prompt with memory capabilities
+enhanced_prompt = """You are a helpful AI assistant with persistent memory capabilities.
+
+Key features:
+- You can remember our conversation history within this thread
+- You can maintain context across multiple messages
+- You provide helpful, accurate, and contextual responses
+- You can reference previous parts of our conversation when relevant
+
+Always be helpful, informative, and maintain a friendly conversational tone."""
+
+# Create the agent WITHOUT checkpointer AND without custom store
+# When using LangGraph API, persistence is handled automatically by the platform
+# The store configuration in langgraph.json will be used instead
 graph = create_react_agent(
     model=model,
     tools=[],
-    prompt="You are a helpful assistant."
+    prompt=enhanced_prompt
 )
 
 if __name__ == "__main__":
