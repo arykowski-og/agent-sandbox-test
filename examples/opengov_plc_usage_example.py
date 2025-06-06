@@ -24,8 +24,8 @@ async def main():
         {
             "opengov_plc": {
                 "command": "python",
-                # Replace with absolute path to your OpenGov PLC MCP server file
-                "args": ["/absolute/path/to/src/mcp/opengov_plc_mcp_server.py"],
+                # Replace with absolute path to your opengov_plc_mcp_server.py file
+                "args": ["/absolute/path/to/opengov_plc_mcp_server.py"],
                 "transport": "stdio",
             }
         }
@@ -90,7 +90,7 @@ async def interactive_mode():
         {
             "opengov_plc": {
                 "command": "python",
-                "args": ["/absolute/path/to/src/mcp/opengov_plc_mcp_server.py"],
+                "args": ["/absolute/path/to/opengov_plc_mcp_server.py"],
                 "transport": "stdio",
             }
         }

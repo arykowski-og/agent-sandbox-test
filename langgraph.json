@@ -2,7 +2,8 @@
   "dependencies": ["."],
   "graphs": {
     "agent": "./src/agents/langgraph_server.py:graph",
-    "open_data_agent": "./src/agents/open_data_agent.py:graph"
+    "open_data_agent": "./src/agents/open_data_agent.py:graph",
+    "permit_assistant": "./src/agents/permit_assistant.py:graph"
   },
   "env": ".env",
   "store": {
