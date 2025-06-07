@@ -5,6 +5,9 @@
     "open_data_agent": "./src/agents/open_data_agent.py:graph",
     "permit_assistant": "./src/agents/permit_assistant.py:graph"
   },
+  "ui": {
+    "permit_assistant": "./src/agents/permit_assistant_ui.tsx"
+  },
   "env": ".env",
   "store": {
     "index": {

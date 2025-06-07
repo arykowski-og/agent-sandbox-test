@@ -2,8 +2,21 @@ import os
 import asyncio
 from dotenv import load_dotenv
 from langgraph.prebuilt import create_react_agent
-from langchain.chat_models import init_chat_model
+from langchain_openai import ChatOpenAI
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from langgraph.graph.ui import ui_message_reducer, push_ui_message, AnyUIMessage
+from langgraph.graph import StateGraph, MessagesState
+from langgraph.graph.message import add_messages
+from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.tools import tool
+import uuid
+import json
+from typing import Annotated, Sequence, TypedDict, Dict, Any
+
+# Define the agent state with UI support
+class AgentState(TypedDict):
+    messages: Annotated[Sequence, add_messages]
+    ui: Annotated[Sequence[AnyUIMessage], ui_message_reducer]
 
 # Load environment variables
 load_dotenv()
@@ -45,8 +58,8 @@ if not og_client_id or not og_client_secret:
     print("OpenGov Permitting & Licensing features will not be available.")
 
 # Initialize the model
-model = init_chat_model(
-    "openai:gpt-4o",
+model = ChatOpenAI(
+    model="gpt-4o",
     temperature=0.1
 )
 
@@ -100,15 +113,147 @@ permit_prompt = """You are a Permit Assistant specialized in helping users with 
 
 Always be helpful, accurate, and proactive in identifying potential issues or opportunities. When using the tools, I'll explain what I'm checking and why it's relevant to your specific situation."""
 
-async def create_permit_agent():
-    """Create the permit assistant agent with MCP tools"""
-    tools = await get_permit_tools()
+def create_ui_enhanced_get_records_tool(original_get_records_tool):
+    """Create an enhanced get_records tool that emits UI components"""
     
-    return create_react_agent(
-        model=model,
-        tools=tools,
-        prompt=permit_prompt
-    )
+    @tool("get_records")
+    async def get_records_with_ui(community: str) -> str:
+        """Get a list of records from the community and display them in a table format.
+        
+        Args:
+            community: The community/jurisdiction name to get records from
+            
+        Returns:
+            A summary of the records found
+        """
+        try:
+            print(f"🎯 DEBUG: Enhanced get_records_with_ui tool called for community: {community}")
+            # Call the original get_records tool with just the community parameter
+            result = await original_get_records_tool.ainvoke({"community": community})
+            
+            print(f"DEBUG: get_records result type: {type(result)}")
+            
+            # Parse the result if it's a JSON string
+            if isinstance(result, str):
+                try:
+                    import json
+                    result = json.loads(result)
+                    print(f"DEBUG: Parsed JSON result type: {type(result)}")
+                except json.JSONDecodeError as e:
+                    print(f"DEBUG: Failed to parse JSON: {e}")
+                    return f"Error: Could not parse response from get_records tool"
+            
+            # Extract records from the result
+            records = []
+            if isinstance(result, dict):
+                if "data" in result:
+                    records = result["data"]
+                    print(f"DEBUG: Found {len(records)} records in 'data' key")
+                elif "records" in result:
+                    records = result["records"]
+                    print(f"DEBUG: Found {len(records)} records in 'records' key")
+                elif "items" in result:
+                    records = result["items"]
+                    print(f"DEBUG: Found {len(records)} records in 'items' key")
+                else:
+                    # If the result is a dict but doesn't have expected keys, treat the whole dict as the data
+                    print(f"DEBUG: Available keys in result: {list(result.keys())}")
+                    records = [result] if result else []
+            elif isinstance(result, list):
+                records = result
+                print(f"DEBUG: Result is a list with {len(records)} items")
+            else:
+                # If result is a string or other type, try to parse it
+                print(f"DEBUG: Unexpected result type: {type(result)}, value: {result}")
+                records = []
+            
+            if records and len(records) > 0:
+                # Create an AI message to associate with the UI component
+                message = AIMessage(
+                    id=str(uuid.uuid4()),
+                    content=f"Successfully retrieved {len(records)} records for {community}. The records are displayed in the table below."
+                )
+                
+                # Emit UI component using push_ui_message with message association
+                try:
+                    push_ui_message(
+                        name="records_table", 
+                        props={
+                            "records": records,
+                            "community": community
+                        },
+                        message=message
+                    )
+                    print(f"DEBUG: Successfully emitted UI component for {len(records)} records")
+                except Exception as ui_error:
+                    print(f"DEBUG: UI emission error: {ui_error}")
+                
+                return f"Successfully retrieved {len(records)} records for {community}. The records are displayed in the table below."
+            else:
+                return f"No records found for community: {community}"
+                
+        except Exception as e:
+            return f"Error retrieving records for {community}: {str(e)}"
+    
+    return get_records_with_ui
+
+async def create_permit_agent():
+    """Create the permit assistant agent with MCP tools and UI support"""
+    original_tools = await get_permit_tools()
+    
+    # Find the original get_records tool and create enhanced tools
+    original_get_records_tool = None
+    for tool in original_tools:
+        if hasattr(tool, 'name') and tool.name == "get_records":
+            original_get_records_tool = tool
+            break
+    
+    # Create enhanced tools list
+    enhanced_tools = []
+    for tool in original_tools:
+        if hasattr(tool, 'name') and tool.name == "get_records" and original_get_records_tool:
+            # Create enhanced get_records tool
+            enhanced_get_records = create_ui_enhanced_get_records_tool(original_get_records_tool)
+            enhanced_tools.append(enhanced_get_records)
+            print(f"🔄 DEBUG: Replaced get_records tool with UI-enhanced version")
+        else:
+            enhanced_tools.append(tool)
+    
+    print(f"🛠️ DEBUG: Total tools loaded: {len(enhanced_tools)}")
+    for tool in enhanced_tools:
+        if hasattr(tool, 'name'):
+            print(f"   - {tool.name}")
+        else:
+            print(f"   - {type(tool).__name__}")
+    
+    # If no get_records tool was found, we'll just use the original tools
+    if not original_get_records_tool:
+        enhanced_tools = original_tools
+    
+    # Create a custom agent node that supports UI
+    async def agent_node(state: AgentState):
+        # Create a react agent with the enhanced tools
+        react_agent = create_react_agent(
+            model=model,
+            tools=enhanced_tools,
+            prompt=permit_prompt
+        )
+        
+        # Invoke the react agent
+        result = await react_agent.ainvoke({"messages": state["messages"]})
+        
+        # Return the result with both messages and ui
+        return {
+            "messages": result["messages"],
+            "ui": state.get("ui", [])  # Preserve existing UI messages
+        }
+    
+    # Create the StateGraph with UI support
+    workflow = StateGraph(AgentState)
+    workflow.add_node("agent", agent_node)
+    workflow.add_edge("__start__", "agent")
+    
+    return workflow.compile()
 
 # Create the agent graph
 try:

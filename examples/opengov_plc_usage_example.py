@@ -10,6 +10,7 @@ import asyncio
 import os
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.prebuilt import create_react_agent
+from langchain_openai import ChatOpenAI
 
 async def main():
     """Main example function"""
@@ -37,8 +38,9 @@ async def main():
     print(f"Loaded {len(tools)} tools from OpenGov PLC MCP server")
     
     # Create a LangGraph agent with the tools
+    model = ChatOpenAI(model="gpt-4o", temperature=0.1)
     agent = create_react_agent(
-        "anthropic:claude-3-5-sonnet-latest",  # or your preferred model
+        model,
         tools
     )
     
@@ -97,7 +99,8 @@ async def interactive_mode():
     )
     
     tools = await client.get_tools()
-    agent = create_react_agent("anthropic:claude-3-5-sonnet-latest", tools)
+    model = ChatOpenAI(model="gpt-4o", temperature=0.1)
+    agent = create_react_agent(model, tools)
     
     print("OpenGov PLC Interactive Mode")
     print("Type 'quit' to exit")
