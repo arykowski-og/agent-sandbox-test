@@ -17,6 +17,7 @@ from typing import Annotated, Sequence, TypedDict, Dict, Any
 class AgentState(TypedDict):
     messages: Annotated[Sequence, add_messages]
     ui: Annotated[Sequence[AnyUIMessage], ui_message_reducer]
+    ui_handled: bool
 
 # Load environment variables
 load_dotenv()
@@ -111,149 +112,514 @@ permit_prompt = """You are a Permit Assistant specialized in helping users with 
 - I learn from your questions to provide more relevant suggestions
 - I understand the relationships between different permit types and processes
 
+🚨 **IMPORTANT UI Guidelines:**
+- When I call get_records or similar data retrieval tools, I will display the results in an interactive UI component, NOT as text tables
+- I should NOT format data as markdown tables in my text responses when a UI component will be shown
+- Instead, I should provide a brief summary and let the UI component display the detailed data
+- My text responses should complement the UI components, not duplicate them
+
 Always be helpful, accurate, and proactive in identifying potential issues or opportunities. When using the tools, I'll explain what I'm checking and why it's relevant to your specific situation."""
 
-def create_ui_enhanced_get_records_tool(original_get_records_tool):
-    """Create an enhanced get_records tool that emits UI components"""
-    
-    @tool("get_records")
-    async def get_records_with_ui(community: str) -> str:
-        """Get a list of records from the community and display them in a table format.
-        
-        Args:
-            community: The community/jurisdiction name to get records from
-            
-        Returns:
-            A summary of the records found
-        """
-        try:
-            print(f"🎯 DEBUG: Enhanced get_records_with_ui tool called for community: {community}")
-            # Call the original get_records tool with just the community parameter
-            result = await original_get_records_tool.ainvoke({"community": community})
-            
-            print(f"DEBUG: get_records result type: {type(result)}")
-            
-            # Parse the result if it's a JSON string
-            if isinstance(result, str):
-                try:
-                    import json
-                    result = json.loads(result)
-                    print(f"DEBUG: Parsed JSON result type: {type(result)}")
-                except json.JSONDecodeError as e:
-                    print(f"DEBUG: Failed to parse JSON: {e}")
-                    return f"Error: Could not parse response from get_records tool"
-            
-            # Extract records from the result
-            records = []
-            if isinstance(result, dict):
-                if "data" in result:
-                    records = result["data"]
-                    print(f"DEBUG: Found {len(records)} records in 'data' key")
-                elif "records" in result:
-                    records = result["records"]
-                    print(f"DEBUG: Found {len(records)} records in 'records' key")
-                elif "items" in result:
-                    records = result["items"]
-                    print(f"DEBUG: Found {len(records)} records in 'items' key")
-                else:
-                    # If the result is a dict but doesn't have expected keys, treat the whole dict as the data
-                    print(f"DEBUG: Available keys in result: {list(result.keys())}")
-                    records = [result] if result else []
-            elif isinstance(result, list):
-                records = result
-                print(f"DEBUG: Result is a list with {len(records)} items")
-            else:
-                # If result is a string or other type, try to parse it
-                print(f"DEBUG: Unexpected result type: {type(result)}, value: {result}")
-                records = []
-            
-            if records and len(records) > 0:
-                # Create an AI message to associate with the UI component
-                message = AIMessage(
-                    id=str(uuid.uuid4()),
-                    content=f"Successfully retrieved {len(records)} records for {community}. The records are displayed in the table below."
-                )
-                
-                # Emit UI component using push_ui_message with message association
-                try:
-                    push_ui_message(
-                        name="records_table", 
-                        props={
-                            "records": records,
-                            "community": community
-                        },
-                        message=message
-                    )
-                    print(f"DEBUG: Successfully emitted UI component for {len(records)} records")
-                except Exception as ui_error:
-                    print(f"DEBUG: UI emission error: {ui_error}")
-                
-                return f"Successfully retrieved {len(records)} records for {community}. The records are displayed in the table below."
-            else:
-                return f"No records found for community: {community}"
-                
-        except Exception as e:
-            return f"Error retrieving records for {community}: {str(e)}"
-    
-    return get_records_with_ui
+# Note: Removed the old UI-enhanced tool functions since we're now handling UI emission 
+# directly in the graph nodes following the LangGraph documentation pattern
 
 async def create_permit_agent():
     """Create the permit assistant agent with MCP tools and UI support"""
     original_tools = await get_permit_tools()
     
-    # Find the original get_records tool and create enhanced tools
-    original_get_records_tool = None
+    print(f"🛠️ DEBUG: Total tools loaded: {len(original_tools)}")
     for tool in original_tools:
-        if hasattr(tool, 'name') and tool.name == "get_records":
-            original_get_records_tool = tool
-            break
-    
-    # Create enhanced tools list
-    enhanced_tools = []
-    for tool in original_tools:
-        if hasattr(tool, 'name') and tool.name == "get_records" and original_get_records_tool:
-            # Create enhanced get_records tool
-            enhanced_get_records = create_ui_enhanced_get_records_tool(original_get_records_tool)
-            enhanced_tools.append(enhanced_get_records)
-            print(f"🔄 DEBUG: Replaced get_records tool with UI-enhanced version")
-        else:
-            enhanced_tools.append(tool)
-    
-    print(f"🛠️ DEBUG: Total tools loaded: {len(enhanced_tools)}")
-    for tool in enhanced_tools:
         if hasattr(tool, 'name'):
             print(f"   - {tool.name}")
         else:
             print(f"   - {type(tool).__name__}")
     
-    # If no get_records tool was found, we'll just use the original tools
-    if not original_get_records_tool:
-        enhanced_tools = original_tools
+    print(f"🛠️ DEBUG: Creating graph with UI support...")
     
-    # Create a custom agent node that supports UI
-    async def agent_node(state: AgentState):
-        # Create a react agent with the enhanced tools
-        react_agent = create_react_agent(
-            model=model,
-            tools=enhanced_tools,
-            prompt=permit_prompt
-        )
+    # Create the LLM with tools bound
+    llm_with_tools = model.bind_tools(original_tools)
+    
+    # Define the chatbot node that handles both LLM calls and UI emission
+    async def chatbot_node(state: AgentState):
+        print(f"🤖 DEBUG: chatbot_node called with {len(state['messages'])} messages")
         
-        # Invoke the react agent
-        result = await react_agent.ainvoke({"messages": state["messages"]})
+        # Add system prompt if this is the first message or if no system message exists
+        messages = state["messages"]
+        if not messages or not any(hasattr(msg, 'type') and msg.type == 'system' for msg in messages):
+            from langchain_core.messages import SystemMessage
+            messages = [SystemMessage(content=permit_prompt)] + list(messages)
         
-        # Return the result with both messages and ui
-        return {
-            "messages": result["messages"],
-            "ui": state.get("ui", [])  # Preserve existing UI messages
-        }
+        response = await llm_with_tools.ainvoke(messages)
+        
+        # Check if the response contains tool calls
+        if hasattr(response, 'tool_calls') and response.tool_calls:
+            print(f"🤖 DEBUG: LLM wants to call tools: {[tc.get('name', 'unknown') for tc in response.tool_calls]}")
+            # Just return the response with tool calls, tools will be executed next
+            return {"messages": [response]}
+        else:
+            print(f"🤖 DEBUG: LLM response without tool calls")
+            # This is a regular AI response, no tools called
+            return {"messages": [response]}
+    
+    # Custom tool node that handles UI emission after tool execution
+    async def tools_with_ui_node(state: AgentState):
+        """Execute tools and emit UI components for specific tools"""
+        from langgraph.prebuilt import ToolNode
+        
+        print(f"🔧 DEBUG: tools_with_ui_node called with {len(state['messages'])} messages")
+        
+        # Store the original messages to access tool calls
+        original_messages = state["messages"]
+        
+        # Execute the tools first
+        tool_node = ToolNode(tools=original_tools)
+        tool_result = await tool_node.ainvoke(state)
+        
+        print(f"🔧 DEBUG: Tool execution completed, now have {len(tool_result['messages'])} messages")
+        print(f"🔧 DEBUG: Original messages: {len(original_messages)}")
+        
+        # Look for get_records tool calls in the original messages
+        found_get_records = False
+        
+        # Check the last message in original_messages for tool calls
+        if original_messages:
+            last_message = original_messages[-1]
+            print(f"🔧 DEBUG: Last original message type: {type(last_message).__name__}, has_tool_calls: {hasattr(last_message, 'tool_calls')}")
+            
+            if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                print(f"🔧 DEBUG: Found tool calls in original message: {[tc.get('name', 'unknown') for tc in last_message.tool_calls]}")
+                
+                for tool_call in last_message.tool_calls:
+                    if tool_call['name'] == 'get_records':
+                        found_get_records = True
+                        print(f"🔧 DEBUG: Found get_records tool call with args: {tool_call.get('args', {})}")
+                        
+                        # Find the corresponding tool response in the tool_result
+                        tool_response = None
+                        for message in tool_result["messages"]:
+                            if (hasattr(message, 'tool_call_id') and 
+                                message.tool_call_id == tool_call['id']):
+                                tool_response = message
+                                print(f"🔧 DEBUG: Found matching tool response")
+                                break
+                        
+                        if tool_response:
+                            try:
+                                print(f"🔧 DEBUG: Processing tool response content type: {type(tool_response.content)}")
+                                print(f"🔧 DEBUG: Tool response content preview: {str(tool_response.content)[:200]}...")
+                                
+                                # Parse the tool response to extract records
+                                result = tool_response.content
+                                if isinstance(result, str):
+                                    try:
+                                        import json
+                                        parsed_result = json.loads(result)
+                                        print(f"🔧 DEBUG: Parsed JSON result with keys: {list(parsed_result.keys()) if isinstance(parsed_result, dict) else 'not a dict'}")
+                                    except json.JSONDecodeError as e:
+                                        print(f"🔧 DEBUG: JSON decode error: {e}")
+                                        continue
+                                else:
+                                    parsed_result = result
+                                    print(f"🔧 DEBUG: Result is not string, type: {type(parsed_result)}")
+                                
+                                # Extract records and included data from the result
+                                records = []
+                                included_data = []
+                                if isinstance(parsed_result, dict):
+                                    if "data" in parsed_result:
+                                        records = parsed_result["data"]
+                                        included_data = parsed_result.get("included", [])
+                                        print(f"🔧 DEBUG: Found {len(records)} records in 'data' key")
+                                        print(f"🔧 DEBUG: Found {len(included_data)} included items")
+                                        
+                                        # Debug: Show what types of included data we have
+                                        if included_data:
+                                            included_types = [item.get("type", "unknown") for item in included_data]
+                                            print(f"🔧 DEBUG: Included data types: {included_types}")
+                                            for i, item in enumerate(included_data[:3]):  # Show first 3 items
+                                                print(f"🔧 DEBUG: Included item {i}: type={item.get('type')}, id={item.get('id')}, attributes_keys={list(item.get('attributes', {}).keys())}")
+                                        
+                                    elif "records" in parsed_result:
+                                        records = parsed_result["records"]
+                                        included_data = parsed_result.get("included", [])
+                                        print(f"🔧 DEBUG: Found {len(records)} records in 'records' key")
+                                    elif "items" in parsed_result:
+                                        records = parsed_result["items"]
+                                        included_data = parsed_result.get("included", [])
+                                        print(f"🔧 DEBUG: Found {len(records)} records in 'items' key")
+                                    else:
+                                        print(f"🔧 DEBUG: No expected keys found, available keys: {list(parsed_result.keys())}")
+                                elif isinstance(parsed_result, list):
+                                    records = parsed_result
+                                    print(f"🔧 DEBUG: Result is list with {len(records)} items")
+                                
+                                if records and len(records) > 0:
+                                    print(f"🔧 DEBUG: Processing {len(records)} records for UI emission")
+                                    
+                                    # Debug: Show what fields are in the first record
+                                    if records:
+                                        first_record = records[0]
+                                        print(f"🔧 DEBUG: First record fields: {list(first_record.keys())}")
+                                        print(f"🔧 DEBUG: First record sample: {dict(list(first_record.items())[:5])}")
+                                        
+                                        # Show relationships structure if it exists
+                                        if "relationships" in first_record:
+                                            relationships = first_record["relationships"]
+                                            print(f"🔧 DEBUG: First record relationships keys: {list(relationships.keys())}")
+                                            for rel_key, rel_value in list(relationships.items())[:3]:  # Show first 3 relationships
+                                                print(f"🔧 DEBUG: Relationship '{rel_key}': {rel_value}")
+                                        
+                                        # Show attributes structure if it exists
+                                        if "attributes" in first_record:
+                                            attributes = first_record["attributes"]
+                                            print(f"🔧 DEBUG: First record attributes keys: {list(attributes.keys())}")
+                                            print(f"🔧 DEBUG: First record attributes sample: {dict(list(attributes.items())[:5])}")
+                                    
+                                    # Process records to ensure proper field mapping for UI
+                                    processed_records = []
+                                    for record in records:
+                                        # Flatten the nested structure - extract attributes
+                                        attributes = record.get("attributes", {})
+                                        
+                                        # Helper function to format date from UTC to local
+                                        def format_date(date_string):
+                                            if not date_string:
+                                                return None
+                                            try:
+                                                from datetime import datetime
+                                                # Parse the UTC date
+                                                utc_date = datetime.fromisoformat(date_string.replace('Z', '+00:00'))
+                                                # Format as local date (just date part for readability)
+                                                return utc_date.strftime('%Y-%m-%d')
+                                            except:
+                                                return date_string
+                                        
+                                        # Helper function to get a better record type name
+                                        def get_record_type_name(type_id, type_description):
+                                            # Use description if available and not empty
+                                            if type_description and type_description.strip():
+                                                return type_description.strip()
+                                            
+                                            # Otherwise, create a more readable name from typeID
+                                            if type_id:
+                                                # Common permit type mappings (you can expand this based on your data)
+                                                type_mappings = {
+                                                    '6413': 'Building Permit',
+                                                    '6372': 'Business License', 
+                                                    '6370': 'Zoning Permit',
+                                                    '6229': 'Temporary Permit',
+                                                    '53': 'Special Event Permit'
+                                                }
+                                                return type_mappings.get(str(type_id), f"Permit Type {type_id}")
+                                            
+                                            return "Unknown Type"
+                                        
+                                        # Helper function to extract address info from included data or relationships
+                                        def get_address_info(record_data, included_data):
+                                            try:
+                                                relationships = record_data.get("relationships", {})
+                                                print(f"🔧 DEBUG: Record {record_data.get('id')} location relationships: {[k for k in relationships.keys() if 'location' in k.lower()]}")
+                                                
+                                                # Try different relationship keys for location
+                                                location_rel = None
+                                                location_key = None
+                                                for key in ["primaryLocation", "location", "address", "site"]:
+                                                    if key in relationships:
+                                                        location_rel = relationships[key]
+                                                        location_key = key
+                                                        print(f"🔧 DEBUG: Found location relationship under key '{key}': {location_rel}")
+                                                        break
+                                                
+                                                if location_rel:
+                                                    # Check if it has data with ID (JSON:API format)
+                                                    if "data" in location_rel and location_rel["data"]:
+                                                        location_data = location_rel["data"]
+                                                        if "id" in location_data:
+                                                            location_id = location_data["id"]
+                                                            location_type = location_data.get("type", "locations")
+                                                            print(f"🔧 DEBUG: Looking for location: id={location_id}, type={location_type}")
+                                                            
+                                                            # Find the location in included data
+                                                            for included_item in included_data:
+                                                                if (included_item.get("type") == location_type and 
+                                                                    included_item.get("id") == location_id):
+                                                                    location_attrs = included_item.get("attributes", {})
+                                                                    print(f"🔧 DEBUG: Found location data: {list(location_attrs.keys())}")
+                                                                    
+                                                                    # Build address from available location attributes
+                                                                    address_parts = []
+                                                                    if location_attrs.get("streetNumber"):
+                                                                        address_parts.append(str(location_attrs["streetNumber"]))
+                                                                    if location_attrs.get("streetName"):
+                                                                        address_parts.append(location_attrs["streetName"])
+                                                                    if location_attrs.get("city"):
+                                                                        address_parts.append(location_attrs["city"])
+                                                                    if location_attrs.get("state"):
+                                                                        address_parts.append(location_attrs["state"])
+                                                                    if location_attrs.get("zipCode"):
+                                                                        address_parts.append(location_attrs["zipCode"])
+                                                                    
+                                                                    # Also try other common address fields
+                                                                    if not address_parts:
+                                                                        for addr_field in ["address", "fullAddress", "streetAddress"]:
+                                                                            if location_attrs.get(addr_field):
+                                                                                return location_attrs[addr_field]
+                                                                    
+                                                                    if address_parts:
+                                                                        return ", ".join(address_parts)
+                                                                    
+                                                                    return f"Location {location_id}"
+                                                            
+                                                            # If relationship exists but no included data found
+                                                            return f"Location ID: {location_id}"
+                                                    
+                                                    # Check if it has direct attributes (non-JSON:API format)
+                                                    elif "attributes" in location_rel:
+                                                        location_attrs = location_rel["attributes"]
+                                                        print(f"🔧 DEBUG: Found direct location attributes: {list(location_attrs.keys())}")
+                                                        
+                                                        # Build address from available location attributes
+                                                        address_parts = []
+                                                        if location_attrs.get("streetNumber"):
+                                                            address_parts.append(str(location_attrs["streetNumber"]))
+                                                        if location_attrs.get("streetName"):
+                                                            address_parts.append(location_attrs["streetName"])
+                                                        if location_attrs.get("city"):
+                                                            address_parts.append(location_attrs["city"])
+                                                        if location_attrs.get("state"):
+                                                            address_parts.append(location_attrs["state"])
+                                                        if location_attrs.get("zipCode"):
+                                                            address_parts.append(location_attrs["zipCode"])
+                                                        
+                                                        # Also try other common address fields
+                                                        if not address_parts:
+                                                            for addr_field in ["address", "fullAddress", "streetAddress"]:
+                                                                if location_attrs.get(addr_field):
+                                                                    return location_attrs[addr_field]
+                                                        
+                                                        if address_parts:
+                                                            return ", ".join(address_parts)
+                                                    
+                                                    # Check if it only has links (OpenGov API pattern)
+                                                    elif "links" in location_rel:
+                                                        print(f"🔧 DEBUG: Location relationship only has links: {location_rel['links']}")
+                                                        # For now, return a placeholder indicating location data is available via link
+                                                        return "Address (via API)"
+                                                    
+                                                    # If relationship exists but no usable data, show placeholder
+                                                    return f"Address Available ({location_key})"
+                                                
+                                                return None
+                                            except Exception as e:
+                                                print(f"🔧 DEBUG: Error getting address info: {e}")
+                                                return None
+                                        
+                                        # Helper function to get applicant name from included data or relationships
+                                        def get_applicant_name(record_data, included_data):
+                                            try:
+                                                relationships = record_data.get("relationships", {})
+                                                print(f"🔧 DEBUG: Record {record_data.get('id')} relationships keys: {list(relationships.keys())}")
+                                                
+                                                # Try different relationship keys for applicant
+                                                applicant_rel = None
+                                                applicant_key = None
+                                                for key in ["applicant", "user", "owner", "primaryContact", "submittedBy"]:
+                                                    if key in relationships:
+                                                        applicant_rel = relationships[key]
+                                                        applicant_key = key
+                                                        print(f"🔧 DEBUG: Found applicant relationship under key '{key}': {applicant_rel}")
+                                                        break
+                                                
+                                                if applicant_rel:
+                                                    # Check if it has data with ID (JSON:API format)
+                                                    if "data" in applicant_rel and applicant_rel["data"]:
+                                                        applicant_data = applicant_rel["data"]
+                                                        if "id" in applicant_data:
+                                                            applicant_id = applicant_data["id"]
+                                                            applicant_type = applicant_data.get("type", "users")
+                                                            print(f"🔧 DEBUG: Looking for applicant: id={applicant_id}, type={applicant_type}")
+                                                            
+                                                            # Find the applicant in included data
+                                                            for included_item in included_data:
+                                                                if (included_item.get("type") == applicant_type and 
+                                                                    included_item.get("id") == applicant_id):
+                                                                    applicant_attrs = included_item.get("attributes", {})
+                                                                    print(f"🔧 DEBUG: Found applicant data: {list(applicant_attrs.keys())}")
+                                                                    
+                                                                    # Build name from available attributes
+                                                                    name_parts = []
+                                                                    if applicant_attrs.get("firstName"):
+                                                                        name_parts.append(applicant_attrs["firstName"])
+                                                                    if applicant_attrs.get("lastName"):
+                                                                        name_parts.append(applicant_attrs["lastName"])
+                                                                    
+                                                                    if name_parts:
+                                                                        return " ".join(name_parts)
+                                                                    
+                                                                    # Fallback to other name fields
+                                                                    for name_field in ["name", "displayName", "fullName", "email"]:
+                                                                        if applicant_attrs.get(name_field):
+                                                                            return applicant_attrs[name_field]
+                                                                    
+                                                                    return f"User {applicant_id}"
+                                                            
+                                                            # If relationship exists but no included data found
+                                                            return f"Applicant ID: {applicant_id}"
+                                                    
+                                                    # Check if it has direct attributes (non-JSON:API format)
+                                                    elif "attributes" in applicant_rel:
+                                                        applicant_attrs = applicant_rel["attributes"]
+                                                        print(f"🔧 DEBUG: Found direct applicant attributes: {list(applicant_attrs.keys())}")
+                                                        
+                                                        # Build name from available attributes
+                                                        name_parts = []
+                                                        if applicant_attrs.get("firstName"):
+                                                            name_parts.append(applicant_attrs["firstName"])
+                                                        if applicant_attrs.get("lastName"):
+                                                            name_parts.append(applicant_attrs["lastName"])
+                                                        
+                                                        if name_parts:
+                                                            return " ".join(name_parts)
+                                                        
+                                                        # Fallback to other name fields
+                                                        for name_field in ["name", "displayName", "fullName", "email"]:
+                                                            if applicant_attrs.get(name_field):
+                                                                return applicant_attrs[name_field]
+                                                    
+                                                    # Check if it only has links (OpenGov API pattern)
+                                                    elif "links" in applicant_rel:
+                                                        print(f"🔧 DEBUG: Applicant relationship only has links: {applicant_rel['links']}")
+                                                        # For now, return a placeholder indicating applicant data is available via link
+                                                        return "Applicant (via API)"
+                                                    
+                                                    # If relationship exists but no usable data, show placeholder
+                                                    return f"Applicant Available ({applicant_key})"
+                                                
+                                                return None
+                                            except Exception as e:
+                                                print(f"🔧 DEBUG: Error getting applicant name: {e}")
+                                                return None
+                                        
+                                        # Create a flattened record with proper field mapping for commonFields
+                                        processed_record = {
+                                            # Use 'id' for internal tracking but map to commonFields structure
+                                            "id": record.get("id"),
+                                            
+                                            # Record Number - from attributes.number (commonFields expects 'recordNumber')
+                                            "recordNumber": attributes.get("number"),
+                                            
+                                            # Record Type - resolve typeID to meaningful name (commonFields expects 'recordType')
+                                            "recordType": get_record_type_name(
+                                                attributes.get('typeID'), 
+                                                attributes.get('typeDescription', '')
+                                            ),
+                                            
+                                            # Status - from attributes.status (commonFields expects 'status')
+                                            "status": attributes.get("status"),
+                                            
+                                            # Date Submitted - format from UTC to local date (commonFields expects 'dateSubmitted')
+                                            "dateSubmitted": format_date(attributes.get("submittedAt")),
+                                            
+                                            # Applicant Name - extract from relationships and included data (commonFields expects 'applicantName')
+                                            "applicantName": get_applicant_name(record, included_data),
+                                            
+                                            # Address - extract from relationships and included data (commonFields expects 'address')
+                                            "address": get_address_info(record, included_data)
+                                        }
+                                        
+                                        # Remove None values to avoid showing empty columns
+                                        processed_record = {k: v for k, v in processed_record.items() if v is not None and v != ""}
+                                        
+                                        processed_records.append(processed_record)
+                                    
+                                    # Get community from tool call args
+                                    community = tool_call.get('args', {}).get('community', 'Unknown')
+                                    
+                                    print(f"🔧 DEBUG: About to emit UI for {len(processed_records)} records, community: {community}")
+                                    
+                                    # Create AI message for UI association
+                                    ui_message = AIMessage(
+                                        id=str(uuid.uuid4()),
+                                        content=f"I found {len(processed_records)} records for {community}. The interactive table below shows the details:"
+                                    )
+                                    
+                                    # Emit UI component associated with the message
+                                    push_ui_message(
+                                        name="records_table",
+                                        props={
+                                            "records": processed_records,
+                                            "community": community
+                                        },
+                                        message=ui_message
+                                    )
+                                    
+                                    print(f"✅ DEBUG: Successfully emitted records_table UI component for {len(processed_records)} records")
+                                    
+                                    # Add the UI message to the messages
+                                    tool_result["messages"].append(ui_message)
+                                    
+                                    # Mark that we've handled this with UI, so we don't need to go back to chatbot
+                                    tool_result["ui_handled"] = True
+                                else:
+                                    print(f"🔧 DEBUG: No records found to display")
+                                    
+                            except Exception as e:
+                                print(f"❌ DEBUG: Error processing get_records for UI: {e}")
+                                import traceback
+                                print(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
+        
+        if not found_get_records:
+            print(f"🔧 DEBUG: No get_records tool calls found in original messages")
+        
+        return tool_result
+    
+    # Import the prebuilt components
+    from langgraph.prebuilt import tools_condition
+    
+    # Define a condition to check if UI was handled
+    def should_continue_after_tools(state: AgentState):
+        """Check if we should continue to chatbot or end after tools"""
+        if state.get("ui_handled", False):
+            print("🔧 DEBUG: UI was handled, ending conversation")
+            return "__end__"
+        else:
+            print("🔧 DEBUG: No UI handled, continuing to chatbot")
+            return "chatbot"
     
     # Create the StateGraph with UI support
     workflow = StateGraph(AgentState)
-    workflow.add_node("agent", agent_node)
-    workflow.add_edge("__start__", "agent")
     
-    return workflow.compile()
+    # Add nodes
+    workflow.add_node("chatbot", chatbot_node)
+    workflow.add_node("tools", tools_with_ui_node)
+    
+    # Add edges
+    workflow.add_edge("__start__", "chatbot")
+    
+    # Add conditional edges from chatbot
+    workflow.add_conditional_edges(
+        "chatbot",
+        tools_condition,
+        {
+            "tools": "tools",
+            "__end__": "__end__"
+        }
+    )
+    
+    # After tools, conditionally go back to chatbot or end
+    workflow.add_conditional_edges(
+        "tools",
+        should_continue_after_tools,
+        {
+            "chatbot": "chatbot",
+            "__end__": "__end__"
+        }
+    )
+    
+    compiled_graph = workflow.compile()
+    print(f"🛠️ DEBUG: Graph compiled successfully with nodes: {list(compiled_graph.get_graph().nodes.keys())}")
+    
+    return compiled_graph
 
 # Create the agent graph
 try:
