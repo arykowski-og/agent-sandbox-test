@@ -14,7 +14,8 @@ import {
   CardContent,
   Divider,
   useTheme,
-  alpha
+  alpha,
+  Button
 } from '@mui/material';
 import {
   Assignment as AssignmentIcon,
@@ -28,7 +29,9 @@ import {
   Business as BusinessIcon,
   Description as DescriptionIcon,
   Phone as PhoneIcon,
-  Email as EmailIcon
+  Email as EmailIcon,
+  Edit as EditIcon,
+  Link as LinkIcon
 } from '@mui/icons-material';
 
 // Simple version without Material-UI for testing
@@ -261,171 +264,376 @@ const RecordDetail: React.FC<RecordDetailProps> = ({ record, community }) => {
     return 'default';
   };
 
-  const getStatusIcon = (status: string) => {
-    const statusLower = status?.toLowerCase() || '';
-    if (statusLower === 'active' || statusLower === 'approved') return <CheckCircleIcon />;
-    if (statusLower === 'pending') return <WarningIcon />;
-    if (statusLower === 'in progress' || statusLower === 'processing') return <InfoIcon />;
-    if (statusLower === 'rejected' || statusLower === 'denied') return <ErrorIcon />;
-    return <InfoIcon />;
-  };
-
   const formatValue = (value: any): string => {
     if (value === null || value === undefined) return 'Not specified';
     if (typeof value === 'object') return JSON.stringify(value, null, 2);
     return String(value);
   };
 
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return 'Not specified';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Extract record data from OpenGov API format
+  const attributes = record.attributes || record;
+  const recordNumber = attributes.number || record.recordNumber || record.id;
+  const recordType = attributes.typeDescription || record.recordType || 'Building Permit';
+  const status = attributes.status || record.status;
+  const submittedDate = attributes.submittedAt || record.dateSubmitted;
+  const expirationDate = attributes.expiresAt;
+  const projectId = attributes.projectID;
+  const projectDescription = attributes.projectDescription;
+
   return (
-    <Card sx={{ maxWidth: 800, mx: 'auto', mt: 2, boxShadow: theme.shadows[3] }}>
-      <CardContent>
-        {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <AssignmentIcon sx={{ fontSize: 32, color: 'primary.main', mr: 2 }} />
-          <Box>
-            <Typography variant="h5" component="h2" sx={{ color: 'primary.main', fontWeight: 600 }}>
-              {record.recordNumber || record.id || 'Record Details'}
-            </Typography>
-            {community && (
-              <Typography variant="body2" color="text.secondary">
-                {community}
+    <Box sx={{ maxWidth: '95vw', width: '100%', mx: 'auto', p: 3, fontFamily: theme.typography.fontFamily }}>
+             {/* Header Section */}
+       <Box sx={{ 
+         display: 'flex', 
+         justifyContent: 'space-between', 
+         alignItems: 'flex-start',
+         mb: 3,
+         p: 3,
+         backgroundColor: '#f8f9fa',
+         borderRadius: 2,
+         border: `1px solid ${theme.palette.divider}`
+       }}>
+        {/* Left side - Record info */}
+        <Box>
+                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+             <LocationIcon sx={{ color: '#6b7280', mr: 1, fontSize: 20 }} />
+             <Typography variant="body2" sx={{ color: '#6b7280', fontWeight: 500 }}>
+               {community || 'City Hall Square, Newton, MA 02555'}
+             </Typography>
+           </Box>
+          
+          <Typography variant="h3" sx={{ 
+            fontWeight: 700, 
+            fontSize: '2.5rem',
+            color: theme.palette.text.primary,
+            mb: 1
+          }}>
+            {recordNumber}
+          </Typography>
+          
+          <Typography variant="body1" sx={{ 
+            color: theme.palette.text.secondary,
+            fontSize: '1rem'
+          }}>
+            {recordType}
+          </Typography>
+        </Box>
+
+                 {/* Right side - Status and metadata */}
+         <Box sx={{ textAlign: 'right', minWidth: '60%' }}>
+           <Box sx={{ display: 'flex', gap: 6, mb: 2, justifyContent: 'flex-end' }}>
+            <Box>
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                Applicant
               </Typography>
-            )}
-          </Box>
-        </Box>
-
-        <Divider sx={{ mb: 3 }} />
-
-        {/* Status */}
-        {record.status && (
-          <Box sx={{ mb: 3 }}>
-            <Chip
-              icon={getStatusIcon(record.status)}
-              label={record.status}
-              color={getStatusColor(record.status)}
-              variant="filled"
-              sx={{ fontWeight: 600, fontSize: '0.875rem' }}
-            />
-          </Box>
-        )}
-
-        {/* Record Details Grid */}
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-          {/* Basic Information */}
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', color: 'primary.main' }}>
-              <InfoIcon sx={{ mr: 1 }} />
-              Basic Information
-            </Typography>
+                             <Typography variant="body2" sx={{ color: '#4285f4', fontWeight: 500 }}>
+                 {record.applicantName || 'Sethland Greenlaw'} 
+                 <LinkIcon sx={{ fontSize: 14, ml: 0.5 }} />
+               </Typography>
+            </Box>
             
-            {record.recordType && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                  Record Type
-                </Typography>
-                <Typography variant="body1">
-                  {typeof record.recordType === 'object' ? record.recordType.name : record.recordType}
-                </Typography>
-              </Box>
-            )}
-
-            {record.dateSubmitted && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-                  <CalendarIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                  Date Submitted
-                </Typography>
-                <Typography variant="body1">{formatValue(record.dateSubmitted)}</Typography>
-              </Box>
-            )}
-
-            {record.createdAt && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-                  <CalendarIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                  Created At
-                </Typography>
-                <Typography variant="body1">{formatValue(record.createdAt)}</Typography>
-              </Box>
-            )}
-          </Box>
-
-          {/* Contact & Location Information */}
-          <Box>
-            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', color: 'primary.main' }}>
-              <PersonIcon sx={{ mr: 1 }} />
-              Contact & Location
-            </Typography>
-
-            {record.applicantName && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-                  <PersonIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                  Applicant
-                </Typography>
-                <Typography variant="body1">{formatValue(record.applicantName)}</Typography>
-              </Box>
-            )}
-
-            {record.address && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-                  <LocationIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                  Address
-                </Typography>
-                <Typography variant="body1">{formatValue(record.address)}</Typography>
-              </Box>
-            )}
-
-            {record.email && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-                  <EmailIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                  Email
-                </Typography>
-                <Typography variant="body1">{formatValue(record.email)}</Typography>
-              </Box>
-            )}
-
-            {record.phone && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, display: 'flex', alignItems: 'center' }}>
-                  <PhoneIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                  Phone
-                </Typography>
-                <Typography variant="body1">{formatValue(record.phone)}</Typography>
-              </Box>
-            )}
-          </Box>
-        </Box>
-
-        {/* Additional Fields */}
-        {Object.keys(record).length > 0 && (
-          <Box sx={{ mt: 3 }}>
-            <Divider sx={{ mb: 2 }} />
-            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', color: 'primary.main' }}>
-              <DescriptionIcon sx={{ mr: 1 }} />
-              Additional Details
-            </Typography>
+            <Box>
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                Project
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {projectDescription || `Mini-Mall - ${projectId || '1234567'}`}
+              </Typography>
+                             {projectId && (
+                 <Typography variant="body2" sx={{ color: '#6b7280', fontSize: '0.875rem' }}>
+                   Edit Project <EditIcon sx={{ fontSize: 12, ml: 0.5 }} />
+                 </Typography>
+               )}
+            </Box>
             
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-              {Object.entries(record)
-                .filter(([key]) => !['recordNumber', 'recordType', 'applicantName', 'dateSubmitted', 'address', 'status', 'createdAt', 'email', 'phone', 'id'].includes(key))
-                .map(([key, value]) => (
-                  <Box key={key} sx={{ mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, textTransform: 'capitalize' }}>
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </Typography>
-                    <Typography variant="body2" sx={{ fontFamily: typeof value === 'object' ? 'monospace' : 'inherit' }}>
-                      {formatValue(value)}
-                    </Typography>
-                  </Box>
-                ))}
+            <Box>
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                Expiration Date
+              </Typography>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                {formatDate(expirationDate) || '11/21/22'} 
+                <EditIcon sx={{ fontSize: 14, ml: 0.5 }} />
+              </Typography>
+            </Box>
+            
+            <Box>
+              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
+                Record Status
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                <Box sx={{ 
+                  width: 8, 
+                  height: 8, 
+                  borderRadius: '50%', 
+                  bgcolor: status?.toLowerCase() === 'active' ? '#34a853' : '#fbbc04',
+                  mr: 1 
+                }} />
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  {status || 'Active'}
+                </Typography>
+              </Box>
             </Box>
           </Box>
-        )}
-      </CardContent>
-    </Card>
+        </Box>
+      </Box>
+
+      {/* Navigation Tabs */}
+      <Box sx={{ 
+        display: 'flex', 
+        gap: 4, 
+        mb: 3,
+        borderBottom: `1px solid ${theme.palette.divider}`
+      }}>
+        {[
+          { label: 'Details', active: true },
+          { label: 'Workflow', count: null },
+          { label: 'Attachments', count: 7 },
+          { label: 'Location', count: 3 },
+          { label: 'Applicant', count: 3 },
+          { label: 'Activity', count: null }
+        ].map((tab, index) => (
+          <Box key={tab.label} sx={{ 
+            pb: 2, 
+            borderBottom: tab.active ? `3px solid #4285f4` : 'none',
+            cursor: 'pointer'
+          }}>
+            <Typography variant="body1" sx={{ 
+              fontWeight: tab.active ? 600 : 400,
+              color: tab.active ? '#4285f4' : theme.palette.text.primary,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5
+            }}>
+              {tab.label}
+              {tab.count && (
+                <Typography component="span" sx={{ 
+                  fontSize: '0.875rem',
+                  color: theme.palette.text.secondary 
+                }}>
+                  {tab.count}
+                </Typography>
+              )}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Details Section */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 600, fontSize: '1.5rem' }}>
+          Details
+        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+            3 Versions
+          </Typography>
+          <Box sx={{ 
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 1,
+            px: 2,
+            py: 0.5
+          }}>
+            <Typography variant="body2">Current Version ▼</Typography>
+          </Box>
+          <Button 
+            variant="outlined" 
+            size="small"
+            sx={{ 
+              borderColor: '#4285f4',
+              color: '#4285f4',
+              textTransform: 'none',
+              fontWeight: 500
+            }}
+          >
+            Request Changes
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Content Sections */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {/* Project Information Section */}
+        <Card sx={{ boxShadow: 'none', border: `1px solid ${theme.palette.divider}` }}>
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Project Information
+              </Typography>
+              <Button 
+                size="small" 
+                sx={{ color: '#4285f4', textTransform: 'none' }}
+                startIcon={<EditIcon />}
+              >
+                Edit
+              </Button>
+            </Box>
+            
+            <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 3 }}>
+              Section level help text or description text
+            </Typography>
+
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+              Brief Description of Project
+            </Typography>
+            
+            <Typography variant="body1" sx={{ mb: 4, lineHeight: 1.6 }}>
+              Building permit will be for a new build at the intersection of Dean Broadway. 
+              This will be a multi-unit building and will be about 8000 square feet.
+            </Typography>
+
+                         {/* Project Details Grid */}
+             <Box sx={{ 
+               display: 'grid', 
+               gridTemplateColumns: { xs: '1fr', md: 'repeat(6, 1fr)' }, 
+               gap: 4 
+             }}>
+              <Box>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                  Estimated Project Cost
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  $20,000
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                  Project Type
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  New Construction
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                  Property Type
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Commercial
+                </Typography>
+              </Box>
+              
+                             <Box>
+                 <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                   Build Duration
+                 </Typography>
+                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                   90 days
+                 </Typography>
+               </Box>
+               
+               <Box>
+                 <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                   Submitted Date
+                 </Typography>
+                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                   {formatDate(submittedDate) || 'Not specified'}
+                 </Typography>
+               </Box>
+               
+               <Box>
+                 <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                   Project ID
+                 </Typography>
+                 <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                   {projectId || 'Not assigned'}
+                 </Typography>
+               </Box>
+             </Box>
+          </CardContent>
+        </Card>
+
+        {/* Contractor Information Section */}
+        <Card sx={{ boxShadow: 'none', border: `1px solid ${theme.palette.divider}` }}>
+          <CardContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Contractor Information
+              </Typography>
+              <Button 
+                size="small" 
+                sx={{ color: '#4285f4', textTransform: 'none' }}
+                startIcon={<EditIcon />}
+              >
+                Edit
+              </Button>
+            </Box>
+
+                         {/* Contractor Details Grid */}
+             <Box sx={{ 
+               display: 'grid', 
+               gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, 
+               gap: 4,
+               mb: 3
+             }}>
+              <Box>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                  Contractor Role
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  General
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                  Type of Work
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Roofing
+                </Typography>
+              </Box>
+            </Box>
+
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+              Project Description
+            </Typography>
+            <Typography variant="body1" sx={{ mb: 3, lineHeight: 1.6 }}>
+              They're here to take the old shingles off the roof and prep it for the insulation team.
+            </Typography>
+
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, 
+              gap: 3 
+            }}>
+              <Box>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                  Contractor Name
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Barry Wilkins
+                </Typography>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                  Business Name
+                </Typography>
+                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                  Barry's Building Construction Business
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+    </Box>
   );
 };
 
@@ -569,9 +777,566 @@ const RecordIdsList: React.FC<RecordIdsListProps> = ({ records, community, total
   );
 };
 
+// Get Record Detail Component for OpenGov API format
+interface OpenGovRecord {
+  id: string;
+  type: string;
+  attributes: {
+    number: string;
+    histID?: string | null;
+    histNumber?: string | null;
+    typeID: string;
+    typeDescription?: string;
+    projectID?: string | null;
+    projectDescription?: string | null;
+    status: string;
+    isEnabled: boolean;
+    submittedAt: string;
+    expiresAt?: string | null;
+    renewalOfRecordID?: string | null;
+    renewalNumber?: string | null;
+    submittedOnline: boolean;
+    renewalSubmitted: boolean;
+    createdAt: string;
+    updatedAt: string;
+    createdBy: string;
+    updatedBy: string;
+  };
+  relationships?: {
+    applicant?: { links: { related: string } };
+    guests?: { links: { related: string } };
+    primaryLocation?: { links: { related: string } };
+    additionalLocations?: { links: { related: string } };
+    workflowSteps?: { links: { related: string } };
+    formFields?: { links: { related: string } };
+    recordType?: { links: { related: string } };
+  };
+}
+
+interface GetRecordDetailProps {
+  record: OpenGovRecord;
+  community?: string;
+}
+
+const GetRecordDetail: React.FC<GetRecordDetailProps> = ({ record, community }) => {
+  if (!record || !record.attributes) {
+    return (
+      <div style={{ 
+        maxWidth: '800px', 
+        margin: '16px auto', 
+        padding: '32px', 
+        textAlign: 'center',
+        backgroundColor: 'white',
+        border: '1px solid #e1e5e9',
+        borderRadius: '8px'
+      }}>
+        <h3 style={{ color: '#374151', fontWeight: 500 }}>Record not found</h3>
+      </div>
+    );
+  }
+
+  const { attributes, relationships } = record;
+
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return 'Not specified';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getStatusColor = (status: string): string => {
+    const statusLower = status?.toLowerCase() || '';
+    if (statusLower === 'active') return '#08a847'; // Green
+    if (statusLower === 'pending') return '#f59e0b'; // Yellow
+    if (statusLower === 'approved') return '#08a847'; // Green
+    if (statusLower === 'rejected' || statusLower === 'denied') return '#ef4444'; // Red
+    if (statusLower === 'in progress' || statusLower === 'processing') return '#3b82f6'; // Blue
+    return '#6b7280'; // Gray default
+  };
+
+  const getStatusTextColor = (status: string): string => {
+    const statusLower = status?.toLowerCase() || '';
+    if (statusLower === 'pending') return '#92400e'; // Dark yellow
+    return 'white';
+  };
+
+  return (
+    <div style={{ 
+      maxWidth: '900px', 
+      margin: '20px auto', 
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      backgroundColor: 'white',
+      border: '1px solid #e1e5e9',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+    }}>
+      {/* Header */}
+      <div style={{ 
+        padding: '24px',
+        borderBottom: '1px solid #e1e5e9',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ 
+            width: '48px',
+            height: '48px',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: '16px'
+          }}>
+            <span style={{ fontSize: '24px', color: 'white' }}>📋</span>
+          </div>
+          <div>
+            <h1 style={{ 
+              margin: '0',
+              color: 'white',
+              fontSize: '28px',
+              fontWeight: 700
+            }}>
+              Record #{attributes.number}
+            </h1>
+            {community && (
+              <p style={{ 
+                margin: '4px 0 0 0',
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontSize: '16px'
+              }}>
+                {community}
+              </p>
+            )}
+          </div>
+        </div>
+        
+        {/* Status Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{
+            padding: '8px 16px',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: 600,
+            color: getStatusTextColor(attributes.status),
+            backgroundColor: getStatusColor(attributes.status),
+            display: 'inline-block'
+          }}>
+            {attributes.status}
+          </span>
+          {attributes.isEnabled && (
+            <span style={{
+              padding: '4px 8px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: 500,
+              color: '#065f46',
+              backgroundColor: 'rgba(16, 185, 129, 0.2)',
+              border: '1px solid rgba(16, 185, 129, 0.3)'
+            }}>
+              ENABLED
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '32px' }}>
+        {/* Basic Information Grid */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+          gap: '32px',
+          marginBottom: '32px'
+        }}>
+          {/* Record Details */}
+          <div>
+            <h3 style={{ 
+              margin: '0 0 20px 0',
+              color: '#1f2937',
+              fontSize: '18px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <span style={{ marginRight: '8px' }}>ℹ️</span>
+              Record Information
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ 
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  Record ID
+                </label>
+                <span style={{ 
+                  fontSize: '16px',
+                  color: '#1f2937',
+                  fontFamily: 'monospace',
+                  backgroundColor: '#f3f4f6',
+                  padding: '4px 8px',
+                  borderRadius: '4px'
+                }}>
+                  {record.id}
+                </span>
+              </div>
+
+              <div>
+                <label style={{ 
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  Type ID
+                </label>
+                <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                  {attributes.typeID}
+                </span>
+              </div>
+
+              {attributes.typeDescription && (
+                <div>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Type Description
+                  </label>
+                  <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                    {attributes.typeDescription}
+                  </span>
+                </div>
+              )}
+
+              {attributes.projectID && (
+                <div>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Project ID
+                  </label>
+                  <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                    {attributes.projectID}
+                  </span>
+                </div>
+              )}
+
+              {attributes.projectDescription && (
+                <div>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Project Description
+                  </label>
+                  <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                    {attributes.projectDescription}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Dates & Timeline */}
+          <div>
+            <h3 style={{ 
+              margin: '0 0 20px 0',
+              color: '#1f2937',
+              fontSize: '18px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <span style={{ marginRight: '8px' }}>📅</span>
+              Timeline
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ 
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  Created At
+                </label>
+                <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                  {formatDate(attributes.createdAt)}
+                </span>
+              </div>
+
+              <div>
+                <label style={{ 
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  Submitted At
+                </label>
+                <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                  {formatDate(attributes.submittedAt)}
+                </span>
+              </div>
+
+              {attributes.updatedAt && (
+                <div>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Last Updated
+                  </label>
+                  <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                    {formatDate(attributes.updatedAt)}
+                  </span>
+                </div>
+              )}
+
+              {attributes.expiresAt && (
+                <div>
+                  <label style={{ 
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Expires At
+                  </label>
+                  <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                    {formatDate(attributes.expiresAt)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Submission Details */}
+        <div style={{ 
+          backgroundColor: '#f8fafc',
+          padding: '24px',
+          borderRadius: '8px',
+          marginBottom: '24px'
+        }}>
+          <h3 style={{ 
+            margin: '0 0 16px 0',
+            color: '#1f2937',
+            fontSize: '18px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <span style={{ marginRight: '8px' }}>📝</span>
+            Submission Details
+          </h3>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '16px'
+          }}>
+            <div>
+              <label style={{ 
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: 500,
+                color: '#6b7280',
+                marginBottom: '4px'
+              }}>
+                Submitted Online
+              </label>
+              <span style={{ 
+                fontSize: '16px', 
+                color: attributes.submittedOnline ? '#059669' : '#dc2626',
+                fontWeight: 500
+              }}>
+                {attributes.submittedOnline ? 'Yes' : 'No'}
+              </span>
+            </div>
+
+            <div>
+              <label style={{ 
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: 500,
+                color: '#6b7280',
+                marginBottom: '4px'
+              }}>
+                Renewal Submitted
+              </label>
+              <span style={{ 
+                fontSize: '16px', 
+                color: attributes.renewalSubmitted ? '#059669' : '#dc2626',
+                fontWeight: 500
+              }}>
+                {attributes.renewalSubmitted ? 'Yes' : 'No'}
+              </span>
+            </div>
+
+            {attributes.renewalOfRecordID && (
+              <div>
+                <label style={{ 
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  Renewal of Record
+                </label>
+                <span style={{ 
+                  fontSize: '16px',
+                  color: '#1f2937',
+                  fontFamily: 'monospace'
+                }}>
+                  {attributes.renewalOfRecordID}
+                </span>
+              </div>
+            )}
+
+            {attributes.renewalNumber && (
+              <div>
+                <label style={{ 
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: '#6b7280',
+                  marginBottom: '4px'
+                }}>
+                  Renewal Number
+                </label>
+                <span style={{ fontSize: '16px', color: '#1f2937' }}>
+                  {attributes.renewalNumber}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Related Resources */}
+        {relationships && Object.keys(relationships).length > 0 && (
+          <div>
+            <h3 style={{ 
+              margin: '0 0 16px 0',
+              color: '#1f2937',
+              fontSize: '18px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <span style={{ marginRight: '8px' }}>🔗</span>
+              Related Resources
+            </h3>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+              gap: '12px'
+            }}>
+              {Object.entries(relationships).map(([key, value]) => (
+                <div key={key} style={{
+                  padding: '12px 16px',
+                  backgroundColor: 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span style={{ 
+                    fontSize: '14px',
+                    color: '#374151',
+                    fontWeight: 500,
+                    textTransform: 'capitalize'
+                  }}>
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                  </span>
+                  <span style={{ 
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    backgroundColor: '#f3f4f6',
+                    padding: '2px 6px',
+                    borderRadius: '4px'
+                  }}>
+                    Available
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* System Information */}
+        <div style={{ 
+          marginTop: '24px',
+          paddingTop: '24px',
+          borderTop: '1px solid #e5e7eb'
+        }}>
+          <h4 style={{ 
+            margin: '0 0 12px 0',
+            color: '#6b7280',
+            fontSize: '14px',
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}>
+            System Information
+          </h4>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+            gap: '12px',
+            fontSize: '12px',
+            color: '#6b7280'
+          }}>
+            <div>Created by: {attributes.createdBy}</div>
+            <div>Updated by: {attributes.updatedBy}</div>
+            {attributes.histID && <div>History ID: {attributes.histID}</div>}
+            {attributes.histNumber && <div>History Number: {attributes.histNumber}</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Keep the original Material-UI components but export the simple one for testing
 export default {
   records_table: SimpleRecordsTable,
   record_detail: SimpleRecordsTable, // Temporary - using same component
   record_ids_list: SimpleRecordsTable, // Temporary - using same component
+  get_record: GetRecordDetail, // New component for individual record details
 }; 

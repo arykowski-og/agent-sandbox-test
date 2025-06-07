@@ -228,15 +228,9 @@ async def create_permit_agent():
                                 included_data = []
                                 if isinstance(parsed_result, dict):
                                     if "data" in parsed_result:
-                                        data = parsed_result["data"]
-                                        # Handle both single record (get_record) and array of records (get_records)
-                                        if isinstance(data, list):
-                                            records = data
-                                        else:
-                                            # Single record - wrap in array for consistent processing
-                                            records = [data]
+                                        records = parsed_result["data"]
                                         included_data = parsed_result.get("included", [])
-                                        print(f"🔧 DEBUG: Found {len(records)} records in 'data' key (single record: {not isinstance(data, list)})")
+                                        print(f"🔧 DEBUG: Found {len(records)} records in 'data' key")
                                         print(f"🔧 DEBUG: Found {len(included_data)} included items")
                                         
                                         # Debug: Show what types of included data we have
@@ -281,14 +275,20 @@ async def create_permit_agent():
                                             attributes = first_record["attributes"]
                                             print(f"🔧 DEBUG: First record attributes keys: {list(attributes.keys())}")
                                             print(f"🔧 DEBUG: First record attributes sample: {dict(list(attributes.items())[:5])}")
-                                    
-                                    # Handle get_record (single record) vs get_records (multiple records)
-                                    print(f"🔧 DEBUG: Checking UI condition - tool_name: '{tool_name}', len(records): {len(records)}")
-                                    print(f"🔧 DEBUG: Condition check: tool_name == 'get_record': {tool_name == 'get_record'}, len(records) == 1: {len(records) == 1}")
-                                    if tool_name == 'get_record' and len(records) == 1:
-                                        # Single record - use get_record UI component
+                                
+                                # Handle get_record (single record) vs get_records (multiple records)
+                                if tool_name == 'get_record':
+                                    # Single record - use get_record UI component
+                                    # For get_record, we expect the data to be a single record object, not an array
+                                    record = None
+                                    if isinstance(parsed_result, dict) and "data" in parsed_result:
+                                        record = parsed_result["data"]
+                                    elif isinstance(parsed_result, dict) and "id" in parsed_result:
+                                        record = parsed_result
+                                    elif records and len(records) > 0:
                                         record = records[0]
-                                        
+                                    
+                                    if record:
                                         # Get community from tool call args
                                         community = tool_call.get('args', {}).get('community', 'Unknown')
                                         
@@ -302,7 +302,6 @@ async def create_permit_agent():
                                         )
                                         
                                         # Emit UI component for single record
-                                        print(f"🔧 DEBUG: Emitting get_record UI component with name='get_record'")
                                         push_ui_message(
                                             name="get_record",
                                             props={
@@ -319,10 +318,9 @@ async def create_permit_agent():
                                         
                                         # Mark that we've handled this with UI
                                         tool_result["ui_handled"] = True
-                                        
-                                    else:
-                                        # Multiple records or get_records tool - use records_table UI component
-                                        print(f"🔧 DEBUG: Using records_table UI - tool_name: '{tool_name}', len(records): {len(records)}")
+                                    
+                                elif tool_name == 'get_records' and records and len(records) > 0:
+                                    # Multiple records - use records_table UI component
                                         # Helper function to format date from UTC to local
                                         def format_date(date_string):
                                             if not date_string:
@@ -601,15 +599,15 @@ async def create_permit_agent():
                                         message=ui_message
                                     )
                                     
-                                    print(f"✅ DEBUG: Successfully emitted records_table UI component for {len(processed_records)} records")
-                                    
-                                    # Add the UI message to the messages
-                                    tool_result["messages"].append(ui_message)
-                                    
-                                    # Mark that we've handled this with UI, so we don't need to go back to chatbot
-                                    tool_result["ui_handled"] = True
-                                else:
-                                    print(f"🔧 DEBUG: No records found to display")
+                                                                            print(f"✅ DEBUG: Successfully emitted records_table UI component for {len(processed_records)} records")
+                                        
+                                        # Add the UI message to the messages
+                                        tool_result["messages"].append(ui_message)
+                                        
+                                        # Mark that we've handled this with UI, so we don't need to go back to chatbot
+                                        tool_result["ui_handled"] = True
+                                    else:
+                                        print(f"🔧 DEBUG: No records found to display for get_records")
                                     
                             except Exception as e:
                                 print(f"❌ DEBUG: Error processing get_records for UI: {e}")
