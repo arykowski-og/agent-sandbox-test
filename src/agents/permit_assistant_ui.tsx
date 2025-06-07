@@ -870,97 +870,457 @@ const GetRecordDetail: React.FC<GetRecordDetailProps> = ({ record, community }) 
 
   return (
     <div style={{ 
-      maxWidth: '900px', 
+      maxWidth: '95vw', 
+      width: '100%',
       margin: '20px auto', 
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      backgroundColor: 'white',
-      border: '1px solid #e1e5e9',
-      borderRadius: '12px',
-      overflow: 'hidden',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+      backgroundColor: 'white'
     }}>
-      {/* Header */}
+            {/* Header Section */}
       <div style={{ 
-        padding: '24px',
-        borderBottom: '1px solid #e1e5e9',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start',
+        padding: '32px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid #e1e5e9',
+        marginBottom: '0'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-          <div style={{ 
-            width: '48px',
-            height: '48px',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: '16px'
-          }}>
-            <span style={{ fontSize: '24px', color: 'white' }}>📋</span>
-          </div>
-          <div>
-            <h1 style={{ 
-              margin: '0',
-              color: 'white',
-              fontSize: '28px',
-              fontWeight: 700
-            }}>
-              Record #{attributes.number}
-            </h1>
-            {community && (
-              <p style={{ 
-                margin: '4px 0 0 0',
-                color: 'rgba(255, 255, 255, 0.9)',
-                fontSize: '16px'
-              }}>
-                {community}
-              </p>
-            )}
-          </div>
-        </div>
-        
-        {/* Status Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{
-            padding: '8px 16px',
-            borderRadius: '20px',
-            fontSize: '14px',
-            fontWeight: 600,
-            color: getStatusTextColor(attributes.status),
-            backgroundColor: getStatusColor(attributes.status),
-            display: 'inline-block'
-          }}>
-            {attributes.status}
-          </span>
-          {attributes.isEnabled && (
-            <span style={{
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontSize: '12px',
-              fontWeight: 500,
-              color: '#065f46',
-              backgroundColor: 'rgba(16, 185, 129, 0.2)',
-              border: '1px solid rgba(16, 185, 129, 0.3)'
-            }}>
-              ENABLED
+        {/* Left side - Record info */}
+        <div style={{ flex: '0 0 auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{ color: '#4285f4', marginRight: '8px', fontSize: '14px' }}>📍</span>
+            <span style={{ color: '#4285f4', fontWeight: 500, fontSize: '14px' }}>
+              {community || 'City Hall Square, Newton, MA 02555'}
             </span>
-          )}
+            <span style={{ color: '#4285f4', marginLeft: '4px', fontSize: '12px' }}>🔗</span>
+          </div>
+          
+          <h1 style={{ 
+            margin: '0 0 12px 0',
+            color: '#1f2937',
+            fontSize: '42px',
+            fontWeight: 700,
+            lineHeight: 1,
+            letterSpacing: '-0.02em'
+          }}>
+            {attributes.number}
+          </h1>
+          
+          <p style={{ 
+            margin: '0',
+            color: '#6b7280',
+            fontSize: '16px',
+            maxWidth: '400px'
+          }}>
+            {attributes.typeDescription || 'Mixed-Use Building Permit in a Commercial Zone'}
+          </p>
+        </div>
+
+        {/* Right side - Metadata columns */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '40px', 
+          alignItems: 'flex-start',
+          flex: '1 1 auto',
+          justifyContent: 'flex-end',
+          paddingLeft: '40px'
+        }}>
+          <div style={{ minWidth: '120px' }}>
+            <div style={{ 
+              color: '#6b7280', 
+              fontSize: '13px', 
+              fontWeight: 500, 
+              marginBottom: '6px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Applicant
+            </div>
+            <div style={{ color: '#4285f4', fontSize: '14px', fontWeight: 500 }}>
+              Sethland Greenlaw
+            </div>
+            <span style={{ color: '#4285f4', fontSize: '12px' }}>🔗</span>
+          </div>
+          
+          <div style={{ minWidth: '140px' }}>
+            <div style={{ 
+              color: '#6b7280', 
+              fontSize: '13px', 
+              fontWeight: 500, 
+              marginBottom: '6px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Project
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+              {attributes.projectDescription || 'Mini-Mall - 1234567'}
+            </div>
+            <div style={{ color: '#4285f4', fontSize: '12px', cursor: 'pointer' }}>
+              Edit Project ✏️
+            </div>
+          </div>
+          
+          <div style={{ minWidth: '120px' }}>
+            <div style={{ 
+              color: '#6b7280', 
+              fontSize: '13px', 
+              fontWeight: 500, 
+              marginBottom: '6px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Expiration Date
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center' }}>
+              {formatDate(attributes.expiresAt || null) || '11/21/22'}
+              <span style={{ color: '#6b7280', marginLeft: '6px', fontSize: '12px', cursor: 'pointer' }}>✏️</span>
+            </div>
+          </div>
+          
+          <div style={{ minWidth: '100px' }}>
+            <div style={{ 
+              color: '#6b7280', 
+              fontSize: '13px', 
+              fontWeight: 500, 
+              marginBottom: '6px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
+              Record Status
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <div style={{ 
+                width: '8px', 
+                height: '8px', 
+                borderRadius: '50%', 
+                backgroundColor: attributes.status?.toLowerCase() === 'active' ? '#34a853' : '#fbbc04',
+                marginRight: '8px' 
+              }} />
+              <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                {attributes.status || 'Active'}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{ padding: '32px' }}>
-        {/* Basic Information Grid */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-          gap: '32px',
-          marginBottom: '32px'
+      {/* Navigation Tabs */}
+      <div style={{ 
+        display: 'flex', 
+        gap: '32px', 
+        marginTop: '24px',
+        marginBottom: '24px',
+        borderBottom: '1px solid #e1e5e9',
+        paddingLeft: '32px'
+      }}>
+        {[
+          { label: 'Details', active: true },
+          { label: 'Workflow', count: null },
+          { label: 'Attachments', count: 7 },
+          { label: 'Location', count: 3 },
+          { label: 'Applicant', count: 3 },
+          { label: 'Activity', count: null }
+        ].map((tab, index) => (
+          <div key={tab.label} style={{ 
+            paddingBottom: '16px', 
+            borderBottom: tab.active ? '3px solid #4285f4' : 'none',
+            cursor: 'pointer'
+          }}>
+            <span style={{ 
+              fontWeight: tab.active ? 600 : 400,
+              color: tab.active ? '#4285f4' : '#1f2937',
+              fontSize: '16px'
+            }}>
+              {tab.label}
+              {tab.count && (
+                <span style={{ 
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  marginLeft: '4px'
+                }}>
+                  {tab.count}
+                </span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Details Section Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '24px',
+        paddingLeft: '24px',
+        paddingRight: '24px'
+      }}>
+        <h2 style={{ 
+          margin: '0',
+          fontSize: '24px', 
+          fontWeight: 600,
+          color: '#1f2937'
         }}>
-          {/* Record Details */}
-          <div>
+          Details
+        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ color: '#6b7280', fontSize: '14px' }}>
+            3 Versions
+          </span>
+          <div style={{ 
+            border: '1px solid #d1d5db',
+            borderRadius: '4px',
+            padding: '8px 12px',
+            fontSize: '14px',
+            backgroundColor: 'white'
+          }}>
+            Current Version ▼
+          </div>
+          <button style={{ 
+            border: '1px solid #4285f4',
+            borderRadius: '4px',
+            padding: '8px 16px',
+            backgroundColor: 'white',
+            color: '#4285f4',
+            fontSize: '14px',
+            fontWeight: 500,
+            cursor: 'pointer'
+          }}>
+            Request Changes
+          </button>
+        </div>
+      </div>
+
+      {/* Content Sections */}
+      <div style={{ padding: '0 24px 24px 24px' }}>
+        {/* Project Information Section */}
+        <div style={{ 
+          border: '1px solid #e1e5e9',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ padding: '24px' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '16px' 
+            }}>
+              <h3 style={{ 
+                margin: '0',
+                color: '#1f2937',
+                fontSize: '18px',
+                fontWeight: 600
+              }}>
+                Project Information
+              </h3>
+              <button style={{ 
+                background: 'none',
+                border: 'none',
+                color: '#4285f4',
+                fontSize: '14px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                ✏️ Edit
+              </button>
+            </div>
+            
+            <p style={{ 
+              margin: '0 0 24px 0',
+              color: '#6b7280',
+              fontSize: '14px'
+            }}>
+              Section level help text or description text
+            </p>
+
+            <h4 style={{ 
+              margin: '0 0 12px 0',
+              color: '#1f2937',
+              fontSize: '16px',
+              fontWeight: 600
+            }}>
+              Brief Description of Project
+            </h4>
+            
+            <p style={{ 
+              margin: '0 0 32px 0',
+              color: '#1f2937',
+              fontSize: '14px',
+              lineHeight: 1.6
+            }}>
+              Building permit will be for a new build at the intersection of Dean Broadway. 
+              This will be a multi-unit building and will be about 8000 square feet.
+            </p>
+
+            {/* Project Details Grid */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '24px' 
+            }}>
+              <div>
+                <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                  Estimated Project Cost
+                </div>
+                <div style={{ color: '#1f2937', fontSize: '14px', fontWeight: 500 }}>
+                  $20,000
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                  Project Type
+                </div>
+                <div style={{ color: '#1f2937', fontSize: '14px', fontWeight: 500 }}>
+                  New Construction
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                  Property Type
+                </div>
+                <div style={{ color: '#1f2937', fontSize: '14px', fontWeight: 500 }}>
+                  Commercial
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                  Build Duration
+                </div>
+                <div style={{ color: '#1f2937', fontSize: '14px', fontWeight: 500 }}>
+                  90 days
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contractor Information Section */}
+        <div style={{ 
+          border: '1px solid #e1e5e9',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ padding: '24px' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '24px' 
+            }}>
+              <h3 style={{ 
+                margin: '0',
+                color: '#1f2937',
+                fontSize: '18px',
+                fontWeight: 600
+              }}>
+                Contractor Information
+              </h3>
+              <button style={{ 
+                background: 'none',
+                border: 'none',
+                color: '#4285f4',
+                fontSize: '14px',
+                fontWeight: 500,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                ✏️ Edit
+              </button>
+            </div>
+
+            {/* Contractor Details Grid */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '24px',
+              marginBottom: '24px'
+            }}>
+              <div>
+                <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                  Contractor Role
+                </div>
+                <div style={{ color: '#1f2937', fontSize: '14px', fontWeight: 500 }}>
+                  General
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                  Type of Work
+                </div>
+                <div style={{ color: '#1f2937', fontSize: '14px', fontWeight: 500 }}>
+                  Roofing
+                </div>
+              </div>
+            </div>
+
+            <h4 style={{ 
+              margin: '0 0 12px 0',
+              color: '#1f2937',
+              fontSize: '16px',
+              fontWeight: 600
+            }}>
+              Project Description
+            </h4>
+            <p style={{ 
+              margin: '0 0 24px 0',
+              color: '#1f2937',
+              fontSize: '14px',
+              lineHeight: 1.6
+            }}>
+              They're here to take the old shingles off the roof and prep it for the insulation team.
+            </p>
+
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '24px' 
+            }}>
+              <div>
+                <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                  Contractor Name
+                </div>
+                <div style={{ color: '#1f2937', fontSize: '14px', fontWeight: 500 }}>
+                  Barry Wilkins
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ color: '#6b7280', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+                  Business Name
+                </div>
+                <div style={{ color: '#1f2937', fontSize: '14px', fontWeight: 500 }}>
+                  Barry's Building Construction Business
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Record Information Section */}
+        <div style={{ 
+          border: '1px solid #e1e5e9',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          backgroundColor: 'white'
+        }}>
+          <div style={{ padding: '24px' }}>
             <h3 style={{ 
-              margin: '0 0 20px 0',
+              margin: '0 0 24px 0',
               color: '#1f2937',
               fontSize: '18px',
               fontWeight: 600,
