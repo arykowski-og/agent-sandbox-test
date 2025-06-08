@@ -110,30 +110,6 @@ const RecordDetail: React.FC<RecordDetailProps> = ({ record, community }) => {
             
             <Box>
               <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-                Project
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                {projectDescription || `Mini-Mall - ${projectId || '1234567'}`}
-              </Typography>
-              {projectId && (
-                <Typography variant="body2" sx={{ color: '#6b7280', fontSize: '0.875rem' }}>
-                  Edit Project <EditIcon sx={{ fontSize: 12, ml: 0.5 }} />
-                </Typography>
-              )}
-            </Box>
-            
-            <Box>
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
-                Expiration Date
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                {formatDate(expirationDate) || '11/21/22'} 
-                <EditIcon sx={{ fontSize: 14, ml: 0.5 }} />
-              </Typography>
-            </Box>
-            
-            <Box>
-              <Typography variant="body2" sx={{ color: theme.palette.text.secondary, fontWeight: 500 }}>
                 Record Status
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
