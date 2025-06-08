@@ -16,9 +16,14 @@ async def create_permit_agent():
     # Get configuration settings
     settings = get_settings()
     
-    # Initialize the model
-    model = ChatOpenAI(
-        model=settings.model_name,
+    # Initialize separate models for chat and tool calling
+    chat_model = ChatOpenAI(
+        model=settings.chat_model_name,
+        temperature=settings.temperature
+    )
+    
+    tool_model = ChatOpenAI(
+        model=settings.tool_model_name,
         temperature=settings.temperature
     )
     
@@ -33,13 +38,15 @@ async def create_permit_agent():
             print(f"   - {type(tool).__name__}")
     
     print(f"🛠️ DEBUG: Creating graph with UI support...")
+    print(f"🛠️ DEBUG: Chat model: {settings.chat_model_name}")
+    print(f"🛠️ DEBUG: Tool model: {settings.tool_model_name}")
     
-    # Create wrapper functions that pass tools and model to nodes
+    # Create wrapper functions that pass tools and appropriate models to nodes
     async def chatbot_wrapper(state: AgentState):
-        return await chatbot_node(state, original_tools, model)
+        return await chatbot_node(state, original_tools, chat_model)
     
     async def tools_wrapper(state: AgentState):
-        return await tools_with_ui_node(state, original_tools)
+        return await tools_with_ui_node(state, original_tools, tool_model)
     
     # Create the StateGraph with UI support
     workflow = StateGraph(AgentState)
@@ -121,6 +128,9 @@ if __name__ == "__main__":
     print("  ✅ Document and workflow management")
     print("  ✅ Payment and fee tracking")
     print("  ✅ Conversation memory and persistence")
+    print()
+    print(f"🤖 Chat model: {settings.chat_model_name}")
+    print(f"🔧 Tool model: {settings.tool_model_name}")
     print()
     
     if settings.og_client_id and settings.og_client_secret:

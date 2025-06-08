@@ -8,9 +8,11 @@ from langchain_core.messages import AIMessage
 from src.agents.permit_assistant.types import AgentState
 from src.agents.permit_assistant.utils import process_records_for_ui, get_address_info, get_applicant_name, format_date, get_record_type_name
 
-async def tools_with_ui_node(state: AgentState, tools):
+async def tools_with_ui_node(state: AgentState, tools, model=None):
     """Execute tools and emit UI components for specific tools"""
     print(f"🔧 DEBUG: tools_with_ui_node called with {len(state['messages'])} messages")
+    if model:
+        print(f"🔧 DEBUG: Using tool model: {model.model_name}")
     
     # Store the original messages to access tool calls
     original_messages = state["messages"]

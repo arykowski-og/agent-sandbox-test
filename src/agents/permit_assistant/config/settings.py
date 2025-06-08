@@ -12,7 +12,8 @@ class Settings(NamedTuple):
     openai_api_key: str
     og_client_id: str
     og_client_secret: str
-    model_name: str = "gpt-4o"
+    chat_model_name: str = "gpt-4.1-2025-04-14"
+    tool_model_name: str = "o4-mini-2025-04-16"
     temperature: float = 0.1
     mcp_server_path: str = ""
 
