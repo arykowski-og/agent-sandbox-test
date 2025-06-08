@@ -24,7 +24,7 @@ load_dotenv()
 
 # Get current directory for MCP server path
 current_dir = os.path.dirname(os.path.abspath(__file__))
-mcp_server_path = os.path.join(os.path.dirname(current_dir), "mcp", "opengov_plc_mcp_server.py")
+mcp_server_path = os.path.join(os.path.dirname(current_dir), "mcp-servers", "opengov_plc_mcp_server.py")
 
 async def get_permit_tools():
     """Get tools from the OpenGov Permitting & Licensing MCP server"""

@@ -15,6 +15,16 @@ from typing import Dict, List, Any, Optional, Union
 from mcp.server import FastMCP
 from dotenv import load_dotenv
 
+# Import JSON normalizer for handling large responses
+try:
+    from .json_normalizer import normalize_graphql_response
+    NORMALIZER_AVAILABLE = True
+except ImportError:
+    # Fallback if normalizer not available
+    def normalize_graphql_response(response, context="graphql"):
+        return response
+    NORMALIZER_AVAILABLE = False
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -306,22 +316,15 @@ def get_client():
     return client
 
 @mcp.tool()
-async def introspect_schema() -> Dict:
+async def introspect_schema(include_full_sdl: bool = False) -> Dict:
     """
-    Introspect the OpenGov FIN GraphQL schema to discover available types, queries, and mutations.
+    Introspect the OpenGov FIN GraphQL schema to discover available types and operations.
     
-    This tool retrieves the complete GraphQL schema definition, including:
-    - Available query operations
-    - Available mutation operations (if any)
-    - All custom types and their fields
-    - Input types for mutations
-    - Enums and scalars
-    
-    Use this tool first to understand what data and operations are available
-    before executing specific GraphQL queries.
+    Args:
+        include_full_sdl (bool): Whether to include the full SDL schema (can be very large)
     
     Returns:
-        Dict: The complete GraphQL schema introspection result
+        Dict: Schema summary with type counts and available operations
     """
     client = get_client()
     schema_data = await client.introspect_schema()
@@ -329,14 +332,68 @@ async def introspect_schema() -> Dict:
     if "error" in schema_data:
         return schema_data
     
-    # Also provide a formatted SDL version for better readability
-    sdl_schema = client.format_schema_as_sdl(schema_data)
+    # Create a summary instead of returning the full schema
+    if "data" in schema_data and "__schema" in schema_data["data"]:
+        schema = schema_data["data"]["__schema"]
+        
+        # Count types by kind
+        type_counts = {}
+        custom_types = []
+        for type_info in schema.get("types", []):
+            if not type_info["name"].startswith("__"):
+                kind = type_info["kind"]
+                type_counts[kind] = type_counts.get(kind, 0) + 1
+                custom_types.append({
+                    "name": type_info["name"],
+                    "kind": kind,
+                    "description": (type_info.get("description", "")[:100] + "...") if type_info.get("description") and len(type_info.get("description", "")) > 100 else type_info.get("description", "No description")
+                })
+        
+        # Get query operations count
+        query_type = schema.get("queryType")
+        query_ops_count = 0
+        if query_type:
+            for type_info in schema["types"]:
+                if type_info["name"] == query_type["name"]:
+                    query_ops_count = len(type_info.get("fields", []))
+                    break
+        
+        # Get mutation operations count
+        mutation_type = schema.get("mutationType")
+        mutation_ops_count = 0
+        if mutation_type:
+            for type_info in schema["types"]:
+                if type_info["name"] == mutation_type["name"]:
+                    mutation_ops_count = len(type_info.get("fields", []))
+                    break
+        
+        result = {
+            "schema_summary": {
+                "total_custom_types": len(custom_types),
+                "type_counts_by_kind": type_counts,
+                "query_operations_count": query_ops_count,
+                "mutation_operations_count": mutation_ops_count,
+                "mutations_allowed": client.allow_mutations
+            },
+            "sample_types": custom_types[:20],  # Show first 20 types as examples
+            "endpoint": client.endpoint
+        }
+        
+        # Only include full SDL if explicitly requested
+        if include_full_sdl:
+            sdl_schema = client.format_schema_as_sdl(schema_data)
+            result["schema_sdl"] = sdl_schema
+            result["warning"] = "Full SDL included - this may consume significant context space"
+        
+        # Apply normalization to prevent context overflow
+        if NORMALIZER_AVAILABLE:
+            result = normalize_graphql_response(result, "schema_introspection")
+        
+        return result
     
     return {
-        "introspection_result": schema_data,
-        "schema_sdl": sdl_schema,
-        "endpoint": client.endpoint,
-        "mutations_allowed": client.allow_mutations
+        "error": "Invalid schema data structure",
+        "endpoint": client.endpoint
     }
 
 @mcp.tool()
@@ -344,190 +401,44 @@ async def query_graphql(query: str, variables: Optional[Dict] = None) -> Dict:
     """
     Execute a GraphQL query against the OpenGov FIN GraphQL endpoint.
     
-    This tool allows you to run GraphQL queries to fetch financial data from OpenGov.
-    You can query for budgets, expenditures, revenues, accounts, and other financial information.
-    
     Args:
         query (str): The GraphQL query string to execute
         variables (Optional[Dict]): Variables to pass to the GraphQL query
     
     Returns:
         Dict: The GraphQL query result including data and any errors
-    
-    Examples:
-        # Simple query to get basic information
-        query_graphql("{ __typename }")
-        
-        # Query with variables
-        query_graphql(
-            "query GetBudget($year: Int!) { budget(year: $year) { total amount } }",
-            {"year": 2024}
-        )
-    
-    Note: Mutations are disabled by default for security. Set OG_FIN_ALLOW_MUTATIONS=true
-    to enable mutation operations.
     """
     client = get_client()
     
-    # Enhanced input validation
+    # Input validation
     if not query or not query.strip():
-        return {
-            "error": "Empty query provided",
-            "message": "GraphQL query cannot be empty. Please provide a valid GraphQL query string.",
-            "troubleshooting": {
-                "issue": "No query provided",
-                "solution": "Provide a valid GraphQL query",
-                "example": "{ __typename }",
-                "next_steps": [
-                    "Use introspect_schema() to discover available queries",
-                    "Use get_query_operations() to see available operations",
-                    "Start with a simple query like '{ __typename }'"
-                ]
-            }
-        }
+        return {"error": "Empty query provided"}
     
     # Check if this is a mutation and if mutations are allowed
     query_stripped = query.strip().lower()
     if query_stripped.startswith("mutation") and not client.allow_mutations:
-        return {
-            "error": "Mutations are disabled",
-            "message": "Mutation operations are disabled by default for security. Set OG_FIN_ALLOW_MUTATIONS=true to enable mutations.",
-            "query": query,
-            "troubleshooting": {
-                "issue": "Mutations not allowed",
-                "solution": "Use query operations instead of mutations",
-                "alternative_approaches": [
-                    "Use query operations to read financial data",
-                    "Contact administrator to enable mutations if needed",
-                    "Use get_query_operations() to see available read operations"
-                ],
-                "prevention": "Check if operation is a query before executing"
-            }
-        }
+        return {"error": "Mutations are disabled"}
     
     # Basic syntax validation
     if not any(keyword in query_stripped for keyword in ['query', 'mutation', '{']):
-        return {
-            "error": "Invalid GraphQL syntax",
-            "message": "The provided string does not appear to be a valid GraphQL query.",
-            "query": query,
-            "troubleshooting": {
-                "issue": "Invalid GraphQL syntax",
-                "solution": "Ensure query follows GraphQL syntax rules",
-                "corrected_examples": [
-                    "{ __typename }",
-                    "query { __typename }",
-                    "query GetData { fieldName }"
-                ],
-                "common_mistakes": [
-                    "Missing curly braces { }",
-                    "Missing 'query' keyword for named queries",
-                    "Incorrect field names or structure"
-                ],
-                "next_steps": [
-                    "Use introspect_schema() to see valid field names",
-                    "Start with simple queries and build complexity gradually",
-                    "Validate syntax against GraphQL specification"
-                ]
-            }
-        }
+        return {"error": "Invalid GraphQL syntax"}
     
     result = await client.make_graphql_request(query, variables)
     
-    # Enhanced error processing
-    if "error" in result:
-        # Add troubleshooting information to errors
-        enhanced_result = result.copy()
-        error_msg = result.get("error", "").lower()
-        
-        # Provide specific troubleshooting based on error type
-        troubleshooting = {
-            "issue": result.get("error", "Unknown error"),
-            "query_attempted": query,
-            "variables_used": variables
-        }
-        
-        if "authentication" in error_msg or "unauthorized" in error_msg:
-            troubleshooting.update({
-                "likely_cause": "Authentication or authorization issue",
-                "solutions": [
-                    "Verify OG_FIN_BEARER_TOKEN is correctly set",
-                    "Check if token has expired",
-                    "Ensure token has proper permissions for this operation"
-                ],
-                "prevention": "Regularly refresh authentication tokens"
-            })
-        elif "field" in error_msg and "exist" in error_msg:
-            troubleshooting.update({
-                "likely_cause": "Querying non-existent field or type",
-                "solutions": [
-                    "Use introspect_schema() to see available fields",
-                    "Check field spelling and capitalization",
-                    "Verify the field exists on the queried type"
-                ],
-                "prevention": "Always validate field names against schema before querying"
-            })
-        elif "syntax" in error_msg or "parse" in error_msg:
-            troubleshooting.update({
-                "likely_cause": "GraphQL syntax error",
-                "solutions": [
-                    "Check for missing or extra braces, parentheses, or quotes",
-                    "Validate query structure against GraphQL syntax",
-                    "Use a GraphQL validator or IDE for syntax checking"
-                ],
-                "prevention": "Use proper GraphQL syntax and validate before executing"
-            })
-        elif "timeout" in error_msg or "network" in error_msg:
-            troubleshooting.update({
-                "likely_cause": "Network connectivity or timeout issue",
-                "solutions": [
-                    "Check internet connectivity",
-                    "Verify OpenGov FIN endpoint is accessible",
-                    "Try a simpler query to test connectivity",
-                    "Contact system administrator if issue persists"
-                ],
-                "prevention": "Monitor network connectivity and endpoint availability"
-            })
-        else:
-            troubleshooting.update({
-                "likely_cause": "Unknown error - see error message for details",
-                "solutions": [
-                    "Review the specific error message",
-                    "Try a simpler query to isolate the issue",
-                    "Use introspect_schema() to verify available operations",
-                    "Contact support if error persists"
-                ],
-                "prevention": "Test queries incrementally and validate against schema"
-            })
-        
-        enhanced_result["troubleshooting"] = troubleshooting
-        return enhanced_result
-    
-    # Add success metadata for better user understanding
-    if "data" in result:
-        result["query_info"] = {
-            "query_executed": query,
-            "variables_used": variables,
-            "success": True,
-            "data_returned": bool(result["data"]),
-            "next_steps": [
-                "Analyze the returned data",
-                "Use the data for financial analysis",
-                "Execute additional queries if needed",
-                "Consider saving results for reporting"
-            ]
-        }
+    # Apply normalization to prevent context overflow
+    if NORMALIZER_AVAILABLE:
+        result = normalize_graphql_response(result, "query_execution")
     
     return result
 
 @mcp.tool()
-async def get_schema_types() -> Dict:
+async def get_schema_types(limit: int = 50, category: str = None) -> Dict:
     """
-    Get a simplified list of all available types in the GraphQL schema.
+    Get a simplified list of available types in the GraphQL schema.
     
-    This is a convenience tool that provides a quick overview of available types
-    without the full introspection details. Useful for getting a high-level view
-    of what data structures are available.
+    Args:
+        limit (int): Maximum number of types to return (default: 50, max: 200)
+        category (str): Filter by type category (OBJECT, INPUT_OBJECT, ENUM, etc.)
     
     Returns:
         Dict: Simplified list of types with their kinds and descriptions
@@ -541,35 +452,55 @@ async def get_schema_types() -> Dict:
     if "data" not in schema_data or "__schema" not in schema_data["data"]:
         return {"error": "Invalid schema data"}
     
+    # Validate and constrain limit
+    limit = min(max(1, limit), 200)
+    
     types_info = []
     for type_info in schema_data["data"]["__schema"]["types"]:
         if type_info["name"].startswith("__"):
             continue  # Skip introspection types
         
+        # Filter by category if specified
+        if category and type_info["kind"] != category.upper():
+            continue
+        
+        # Truncate description to prevent context overflow
+        description = type_info.get("description", "No description available")
+        if description and len(description) > 150:
+            description = description[:150] + "..."
+        
         types_info.append({
             "name": type_info["name"],
             "kind": type_info["kind"],
-            "description": type_info.get("description"),
+            "description": description,
             "fields_count": len(type_info.get("fields", [])) if type_info.get("fields") else 0
         })
     
     # Sort by kind then name
     types_info.sort(key=lambda x: (x["kind"], x["name"]))
     
-    return {
-        "types": types_info,
-        "total_types": len(types_info),
-        "endpoint": client.endpoint
+    # Apply limit
+    total_available = len(types_info)
+    limited_types = types_info[:limit]
+    
+    result = {
+        "types": limited_types,
+        "total_types_available": total_available,
+        "types_returned": len(limited_types),
+        "limit_applied": limit,
+        "category_filter": category
     }
+    
+    # Apply normalization to prevent context overflow
+    if NORMALIZER_AVAILABLE:
+        result = normalize_graphql_response(result, "schema_types")
+    
+    return result
 
 @mcp.tool()
 async def get_query_operations() -> Dict:
     """
     Get all available query operations from the GraphQL schema.
-    
-    This tool extracts and lists all the query operations available in the schema,
-    including their arguments and return types. This is helpful for understanding
-    what data you can fetch from the API.
     
     Returns:
         Dict: List of available query operations with their signatures
@@ -628,10 +559,6 @@ async def get_query_operations() -> Dict:
 async def get_mutation_operations() -> Dict:
     """
     Get all available mutation operations from the GraphQL schema.
-    
-    This tool extracts and lists all the mutation operations available in the schema,
-    including their arguments and return types. Note that mutations are disabled
-    by default for security.
     
     Returns:
         Dict: List of available mutation operations with their signatures

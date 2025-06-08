@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 try:
     spec = importlib.util.spec_from_file_location(
         "opengov_fin_mcp_server", 
-        os.path.join(os.path.dirname(__file__), "src", "mcp", "opengov_fin_mcp_server.py")
+        os.path.join(os.path.dirname(__file__), "src", "mcp-servers", "opengov_fin_mcp_server.py")
     )
     opengov_fin_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(opengov_fin_module)
@@ -30,7 +30,7 @@ except Exception as e:
     print(f"❌ Import error: {e}")
     print("Make sure you're running this from the project root directory")
     print("Current working directory:", os.getcwd())
-    print("Expected file location: src/mcp/opengov_fin_mcp_server.py")
+    print("Expected file location: src/mcp-servers/opengov_fin_mcp_server.py")
     sys.exit(1)
 
 async def test_fin_mcp_server():

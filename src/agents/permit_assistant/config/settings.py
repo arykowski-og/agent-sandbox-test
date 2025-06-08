@@ -20,8 +20,8 @@ def get_settings() -> Settings:
     """Get configuration settings from environment variables"""
     
     # Get current directory for MCP server path
-    current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    mcp_server_path = os.path.join(current_dir, "mcp", "opengov_plc_mcp_server.py")
+    current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    mcp_server_path = os.path.join(current_dir, "mcp-servers", "opengov_plc_mcp_server.py")
     
     # Get API keys
     api_key = os.getenv("OPENAI_API_KEY", "")
