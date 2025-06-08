@@ -1,18 +1,10 @@
 """Chatbot node for the permit assistant"""
 
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
-from ..config import PERMIT_PROMPT, get_settings
-from ..types import AgentState
+from src.agents.permit_assistant.config import PERMIT_PROMPT
+from src.agents.permit_assistant.types import AgentState
 
-# Initialize the model
-settings = get_settings()
-model = ChatOpenAI(
-    model=settings.model_name,
-    temperature=settings.temperature
-)
-
-async def chatbot_node(state: AgentState, tools):
+async def chatbot_node(state: AgentState, tools, model):
     """Handle LLM calls with system prompt injection"""
     print(f"🤖 DEBUG: chatbot_node called with {len(state['messages'])} messages")
     

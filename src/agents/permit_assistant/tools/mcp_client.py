@@ -1,7 +1,8 @@
-"""MCP client for loading OpenGov tools"""
+"""MCP client for OpenGov Permitting & Licensing tools"""
 
+import os
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from ..config import get_settings
+from src.agents.permit_assistant.config import get_settings
 
 async def get_permit_tools():
     """Get tools from the OpenGov Permitting & Licensing MCP server"""
@@ -11,7 +12,7 @@ async def get_permit_tools():
         # Configure MCP client with OpenGov PLC server
         client = MultiServerMCPClient({
             "opengov_plc": {
-                "command": "python",
+                "command": "python3",
                 "args": [settings.mcp_server_path],
                 "transport": "stdio",
             }

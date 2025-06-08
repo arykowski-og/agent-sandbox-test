@@ -1,6 +1,6 @@
 """Configuration module for permit assistant"""
 
-from .prompts import PERMIT_PROMPT
 from .settings import get_settings
+from .prompts import PERMIT_PROMPT
 
-__all__ = ["PERMIT_PROMPT", "get_settings"] 
+__all__ = ["get_settings", "PERMIT_PROMPT"] 
