@@ -188,6 +188,63 @@ Once running (`./run.sh`), try these in the Chat UI:
 - **General Chat**: "Hello, how are you?"
 - **Capabilities**: "What tools do you have?"
 
+## 🔌 **MCP Servers**
+
+This project includes Model Context Protocol (MCP) servers for integrating with external APIs:
+
+### **OpenGov FIN GraphQL MCP Server**
+A GraphQL-based MCP server for OpenGov Financial Management System, inspired by [mcp-graphql](https://github.com/blurrah/mcp-graphql).
+
+**Features:**
+- 🔍 **Schema Introspection**: Automatically discover available GraphQL operations
+- 📊 **Financial Data Access**: Query budgets, expenditures, revenues, and accounts
+- 🔒 **JWT Authentication**: Secure Bearer token authentication
+- 🛡️ **Mutation Control**: Mutations disabled by default for security
+- 📝 **SDL Formatting**: Human-readable schema documentation
+
+**Configuration:**
+```bash
+# Add to your .env file
+OG_FIN_GRAPHQL_ENDPOINT=https://opengovdemo.fms.opengov.com/oci/graphql
+OG_FIN_BEARER_TOKEN=your_jwt_token_here
+OG_FIN_ALLOW_MUTATIONS=false  # Set to true to enable mutations
+```
+
+**Available Tools:**
+- `introspect_schema()` - Discover available GraphQL operations and types
+- `query_graphql(query, variables)` - Execute GraphQL queries
+- `get_schema_types()` - Get simplified list of available types
+- `get_query_operations()` - List all available query operations
+- `get_mutation_operations()` - List all available mutation operations
+
+**Testing:**
+```bash
+# Test the MCP server
+python test_fin_mcp.py
+```
+
+**Usage Example:**
+```python
+# Basic connectivity test
+await query_graphql("{ __typename }")
+
+# Query financial data (example)
+await query_graphql("""
+  query GetBudgets {
+    budgets {
+      id
+      name
+      totalAmount
+      fiscalYear
+    }
+  }
+""")
+```
+
+### **Other MCP Servers**
+- `opengov_plc_mcp_server.py` - OpenGov Permitting & Licensing API
+- `opengov_open_data_mcp_server.py` - CKAN Open Data API
+
 ## 🔧 **Development**
 
 ### Adding New Tools

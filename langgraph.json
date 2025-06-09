@@ -3,10 +3,12 @@
   "graphs": {
     "agent": "./src/agents/langgraph_server.py:graph",
     "open_data_agent": "./src/agents/open_data_agent.py:graph",
-    "permit_assistant": "./src/agents/permit_assistant/graph.py:graph"
+    "permit_assistant": "./src/agents/permit_assistant/graph.py:graph",
+    "finance_assistant": "./src/agents/finance_assistant:create_finance_agent"
   },
   "ui": {
-    "permit_assistant": "./src/agents/permit_assistant/ui.tsx"
+    "permit_assistant": "./src/agents/permit_assistant/ui.tsx",
+    "finance_assistant": "./src/agents/finance_assistant_ui.tsx"
   },
   "env": ".env",
   "store": {
