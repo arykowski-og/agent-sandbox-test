@@ -12,7 +12,8 @@ class Settings(NamedTuple):
     openai_api_key: str
     og_client_id: str
     og_client_secret: str
-    model_name: str = "gpt-4o"
+    chat_model_name: str = "gpt-4.1-2025-04-14"
+    tool_model_name: str = "o4-mini-2025-04-16"
     temperature: float = 0.1
     mcp_server_path: str = ""
 
@@ -20,8 +21,12 @@ def get_settings() -> Settings:
     """Get configuration settings from environment variables"""
     
     # Get current directory for MCP server path
-    current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    mcp_server_path = os.path.join(current_dir, "mcp-servers", "opengov_plc_mcp_server.py")
+    # From src/agents/permit_assistant/config/settings.py, go up 3 levels to get to src/
+    current_file_dir = os.path.dirname(os.path.abspath(__file__))  # config/
+    permit_assistant_dir = os.path.dirname(current_file_dir)       # permit_assistant/
+    agents_dir = os.path.dirname(permit_assistant_dir)             # agents/
+    src_dir = os.path.dirname(agents_dir)                          # src/
+    mcp_server_path = os.path.join(src_dir, "mcp-servers", "opengov_plc_mcp_server.py")
     
     # Get API keys
     api_key = os.getenv("OPENAI_API_KEY", "")

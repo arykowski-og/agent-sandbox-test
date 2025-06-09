@@ -5,12 +5,14 @@ import json
 from langgraph.prebuilt import ToolNode
 from langgraph.graph.ui import push_ui_message
 from langchain_core.messages import AIMessage
-from ..types import AgentState
-from ..utils import process_records_for_ui
+from src.agents.permit_assistant.types import AgentState
+from src.agents.permit_assistant.utils import process_records_for_ui, get_address_info, get_applicant_name, format_date, get_record_type_name
 
-async def tools_with_ui_node(state: AgentState, tools):
+async def tools_with_ui_node(state: AgentState, tools, model=None):
     """Execute tools and emit UI components for specific tools"""
     print(f"🔧 DEBUG: tools_with_ui_node called with {len(state['messages'])} messages")
+    if model:
+        print(f"🔧 DEBUG: Using tool model: {model.model_name}")
     
     # Store the original messages to access tool calls
     original_messages = state["messages"]
@@ -22,8 +24,8 @@ async def tools_with_ui_node(state: AgentState, tools):
     print(f"🔧 DEBUG: Tool execution completed, now have {len(tool_result['messages'])} messages")
     print(f"🔧 DEBUG: Original messages: {len(original_messages)}")
     
-    # Look for get_records tool calls in the original messages
-    found_get_records = False
+    # Look for get_records and get_record tool calls in the original messages
+    found_ui_tool = False
     
     # Check the last message in original_messages for tool calls
     if original_messages:
@@ -34,9 +36,10 @@ async def tools_with_ui_node(state: AgentState, tools):
             print(f"🔧 DEBUG: Found tool calls in original message: {[tc.get('name', 'unknown') for tc in last_message.tool_calls]}")
             
             for tool_call in last_message.tool_calls:
-                if tool_call['name'] == 'get_records':
-                    found_get_records = True
-                    print(f"🔧 DEBUG: Found get_records tool call with args: {tool_call.get('args', {})}")
+                if tool_call['name'] in ['get_records', 'get_record']:
+                    found_ui_tool = True
+                    tool_name = tool_call['name']
+                    print(f"🔧 DEBUG: Found {tool_name} tool call with args: {tool_call.get('args', {})}")
                     
                     # Find the corresponding tool response in the tool_result
                     tool_response = None
@@ -70,9 +73,15 @@ async def tools_with_ui_node(state: AgentState, tools):
                             included_data = []
                             if isinstance(parsed_result, dict):
                                 if "data" in parsed_result:
-                                    records = parsed_result["data"]
+                                    data = parsed_result["data"]
+                                    # Handle both single record (get_record) and array of records (get_records)
+                                    if isinstance(data, list):
+                                        records = data
+                                    else:
+                                        # Single record - wrap in array for consistent processing
+                                        records = [data]
                                     included_data = parsed_result.get("included", [])
-                                    print(f"🔧 DEBUG: Found {len(records)} records in 'data' key")
+                                    print(f"🔧 DEBUG: Found {len(records)} records in 'data' key (single record: {not isinstance(data, list)})")
                                     print(f"🔧 DEBUG: Found {len(included_data)} included items")
                                     
                                     # Debug: Show what types of included data we have
@@ -118,46 +127,131 @@ async def tools_with_ui_node(state: AgentState, tools):
                                         print(f"🔧 DEBUG: First record attributes keys: {list(attributes.keys())}")
                                         print(f"🔧 DEBUG: First record attributes sample: {dict(list(attributes.items())[:5])}")
                                 
-                                # Process records for UI display
-                                processed_records = process_records_for_ui(records, included_data)
+                                # Handle get_record (single record) vs get_records (multiple records)
+                                print(f"🔧 DEBUG: Checking UI condition - tool_name: '{tool_name}', len(records): {len(records)}")
+                                print(f"🔧 DEBUG: Condition check: tool_name == 'get_record': {tool_name == 'get_record'}, len(records) == 1: {len(records) == 1}")
+                                if tool_name == 'get_record' and len(records) == 1:
+                                    # Single record - use get_record UI component
+                                    record = records[0]
+                                    
+                                    # Get community from tool call args
+                                    community = tool_call.get('args', {}).get('community', 'Unknown')
+                                    
+                                    print(f"🔧 DEBUG: About to emit get_record UI for single record, community: {community}")
+                                    
+                                    # Create AI message for UI association
+                                    record_number = record.get("attributes", {}).get("number", record.get("id", "Unknown"))
+                                    ui_message = AIMessage(
+                                        id=str(uuid.uuid4()),
+                                        content=f"Here are the details for record #{record_number}:"
+                                    )
+                                    
+                                    # Emit UI component for single record
+                                    print(f"🔧 DEBUG: Emitting get_record UI component with name='get_record'")
+                                    push_ui_message(
+                                        name="get_record",
+                                        props={
+                                            "record": record,
+                                            "community": community
+                                        },
+                                        message=ui_message
+                                    )
+                                    
+                                    print(f"✅ DEBUG: Successfully emitted get_record UI component for record {record_number}")
+                                    
+                                    # Add the UI message to the messages
+                                    tool_result["messages"].append(ui_message)
+                                    
+                                    # Mark that we've handled this with UI
+                                    tool_result["ui_handled"] = True
+                                    
+                                else:
+                                    # Multiple records or get_records tool - use records_table UI component
+                                    print(f"🔧 DEBUG: Using records_table UI - tool_name: '{tool_name}', len(records): {len(records)}")
+                                    
+                                    # Process records to ensure proper field mapping for UI
+                                    processed_records = []
+                                    for record in records:
+                                        # Flatten the nested structure - extract attributes
+                                        attributes = record.get("attributes", {})
+                                        
+                                        # Create a flattened record with proper field mapping for commonFields
+                                        processed_record = {
+                                            # Use 'id' for internal tracking but map to commonFields structure
+                                            "id": record.get("id"),
+                                            
+                                            # Record Number - from attributes.number (commonFields expects 'recordNumber')
+                                            "recordNumber": attributes.get("number"),
+                                            
+                                            # Record Type - resolve typeID to meaningful name (commonFields expects 'recordType')
+                                            "recordType": get_record_type_name(
+                                                attributes.get('typeID'), 
+                                                attributes.get('typeDescription', '')
+                                            ),
+                                            
+                                            # Status - from attributes.status (commonFields expects 'status')
+                                            "status": attributes.get("status"),
+                                            
+                                            # Date Submitted - format from UTC to local date (commonFields expects 'dateSubmitted')
+                                            "dateSubmitted": format_date(attributes.get("submittedAt")),
+                                            
+                                            # Applicant Name - extract from relationships and included data (commonFields expects 'applicantName')
+                                            "applicantName": get_applicant_name(record, included_data),
+                                            
+                                            # Address - extract from relationships and included data (commonFields expects 'address')
+                                            "address": get_address_info(record, included_data)
+                                        }
+                                        
+                                        # Remove None values to avoid showing empty columns
+                                        processed_record = {k: v for k, v in processed_record.items() if v is not None and v != ""}
+                                        
+                                        processed_records.append(processed_record)
                                 
-                                # Get community from tool call args
-                                community = tool_call.get('args', {}).get('community', 'Unknown')
-                                
-                                print(f"🔧 DEBUG: About to emit UI for {len(processed_records)} records, community: {community}")
-                                
-                                # Create AI message for UI association
-                                ui_message = AIMessage(
-                                    id=str(uuid.uuid4()),
-                                    content=f"I found {len(processed_records)} records for {community}. The interactive table below shows the details:"
-                                )
-                                
-                                # Emit UI component associated with the message
-                                push_ui_message(
-                                    name="records_table",
-                                    props={
-                                        "records": processed_records,
-                                        "community": community
-                                    },
-                                    message=ui_message
-                                )
-                                
-                                print(f"✅ DEBUG: Successfully emitted records_table UI component for {len(processed_records)} records")
-                                
-                                # Add the UI message to the messages
-                                tool_result["messages"].append(ui_message)
-                                
-                                # Mark that we've handled this with UI, so we don't need to go back to chatbot
-                                tool_result["ui_handled"] = True
+                                    # Get community from tool call args
+                                    community = tool_call.get('args', {}).get('community', 'Unknown')
+                                    
+                                    print(f"🔧 DEBUG: About to emit UI for {len(processed_records)} records, community: {community}")
+                                    
+                                    # Create AI message for UI association
+                                    ui_message = AIMessage(
+                                        id=str(uuid.uuid4()),
+                                        content=f"I found {len(processed_records)} records for {community}. The interactive table below shows the details:"
+                                    )
+                                    
+                                    # Emit UI component associated with the message
+                                    push_ui_message(
+                                        name="records_table",
+                                        props={
+                                            "records": processed_records,
+                                            "community": community
+                                        },
+                                        message=ui_message
+                                    )
+                                    
+                                    print(f"✅ DEBUG: Successfully emitted records_table UI component for {len(processed_records)} records")
+                                    
+                                    # Add the UI message to the messages
+                                    tool_result["messages"].append(ui_message)
+                                    
+                                    # Mark that we've handled this with UI, so we don't need to go back to chatbot
+                                    tool_result["ui_handled"] = True
                             else:
                                 print(f"🔧 DEBUG: No records found to display")
                                 
                         except Exception as e:
-                            print(f"❌ DEBUG: Error processing get_records for UI: {e}")
+                            print(f"❌ DEBUG: Error processing {tool_name} for UI: {e}")
                             import traceback
                             print(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
     
-    if not found_get_records:
-        print(f"🔧 DEBUG: No get_records tool calls found in original messages")
+    if not found_ui_tool:
+        print(f"🔧 DEBUG: No UI tool calls found in original messages")
     
-    return tool_result 
+    # Ensure ui_handled flag is properly set in the returned state
+    if tool_result.get("ui_handled", False):
+        print(f"🔧 DEBUG: Setting ui_handled=True in returned state")
+        return {
+            "messages": tool_result["messages"],
+            "ui_handled": True
+        }
+    else:
+        return tool_result 

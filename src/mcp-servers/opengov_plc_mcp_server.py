@@ -244,10 +244,10 @@ async def get_records(
         if filter_expires_at_to:
             params["filter[expiresAt][to]"] = filter_expires_at_to
         
-        # Add pagination
-        if page_number and page_number >= 1:
+        # Add pagination - only if explicitly provided
+        if page_number and page_number > 1:  # Only add if not default
             params["page[number]"] = page_number
-        if page_size and 1 <= page_size <= 100:
+        if page_size and page_size != 20:  # Only add if not default
             params["page[size]"] = page_size
         
         # Get the basic records list

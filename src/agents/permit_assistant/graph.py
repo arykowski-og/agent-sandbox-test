@@ -3,12 +3,31 @@
 import asyncio
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import tools_condition
-from .types import AgentState
-from .nodes import chatbot_node, tools_with_ui_node, should_continue_after_tools
-from .tools import get_permit_tools
+from langchain_openai import ChatOpenAI
+
+# Use absolute imports for LangGraph compatibility
+from src.agents.permit_assistant.types import AgentState
+from src.agents.permit_assistant.nodes import chatbot_node, tools_with_ui_node, should_continue_after_tools
+from src.agents.permit_assistant.tools import get_permit_tools
+from src.agents.permit_assistant.config import get_settings
 
 async def create_permit_agent():
     """Create the permit assistant agent with MCP tools and UI support"""
+    # Get configuration settings
+    settings = get_settings()
+    
+    # Initialize separate models for chat and tool calling
+    chat_model = ChatOpenAI(
+        model=settings.chat_model_name,
+        temperature=settings.temperature
+    )
+    
+    tool_model = ChatOpenAI(
+        model=settings.tool_model_name,
+        temperature=settings.temperature
+    )
+    
+    # Get tools from MCP server
     original_tools = await get_permit_tools()
     
     print(f"🛠️ DEBUG: Total tools loaded: {len(original_tools)}")
@@ -19,13 +38,15 @@ async def create_permit_agent():
             print(f"   - {type(tool).__name__}")
     
     print(f"🛠️ DEBUG: Creating graph with UI support...")
+    print(f"🛠️ DEBUG: Chat model: {settings.chat_model_name}")
+    print(f"🛠️ DEBUG: Tool model: {settings.tool_model_name}")
     
-    # Create wrapper functions that pass tools to nodes
+    # Create wrapper functions that pass tools and appropriate models to nodes
     async def chatbot_wrapper(state: AgentState):
-        return await chatbot_node(state, original_tools)
+        return await chatbot_node(state, original_tools, chat_model)
     
     async def tools_wrapper(state: AgentState):
-        return await tools_with_ui_node(state, original_tools)
+        return await tools_with_ui_node(state, original_tools, tool_model)
     
     # Create the StateGraph with UI support
     workflow = StateGraph(AgentState)
@@ -60,4 +81,62 @@ async def create_permit_agent():
     compiled_graph = workflow.compile()
     print(f"🛠️ DEBUG: Graph compiled successfully with nodes: {list(compiled_graph.get_graph().nodes.keys())}")
     
-    return compiled_graph 
+    return compiled_graph
+
+# For LangGraph compatibility - create graph lazily
+def _create_graph_sync():
+    """Create graph synchronously for LangGraph"""
+    try:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(create_permit_agent())
+    except RuntimeError:
+        # No event loop running
+        return asyncio.run(create_permit_agent())
+
+# Module-level graph - will be created when first accessed
+graph = None
+
+def get_graph():
+    """Get the permit assistant graph, creating it if necessary"""
+    global graph
+    if graph is None:
+        graph = _create_graph_sync()
+    return graph
+
+# For LangGraph compatibility, set graph at module level
+try:
+    # Only create if we're not in an async context
+    loop = asyncio.get_event_loop()
+    if not loop.is_running():
+        graph = _create_graph_sync()
+except RuntimeError:
+    # No event loop, safe to create
+    graph = _create_graph_sync()
+except Exception:
+    # Any other error, defer creation
+    pass
+
+if __name__ == "__main__":
+    # For testing the agent locally
+    settings = get_settings()
+    print("🏢 Permit Assistant with OpenGov Integration is ready!")
+    print("=" * 60)
+    print("Features enabled:")
+    print("  ✅ OpenGov Permitting & Licensing API integration")
+    print("  ✅ Comprehensive permit and license management")
+    print("  ✅ Inspection scheduling and tracking")
+    print("  ✅ Document and workflow management")
+    print("  ✅ Payment and fee tracking")
+    print("  ✅ Conversation memory and persistence")
+    print()
+    print(f"🤖 Chat model: {settings.chat_model_name}")
+    print(f"🔧 Tool model: {settings.tool_model_name}")
+    print()
+    
+    if settings.og_client_id and settings.og_client_secret:
+        print("🔑 OpenGov credentials configured successfully")
+    else:
+        print("⚠️  OpenGov credentials not configured - some features may not work")
+    
+    print("Use 'langgraph dev' to start the development server")
+    print("Access via agent-chat-ui with assistant=permit_assistant") 

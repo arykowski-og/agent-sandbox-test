@@ -5,7 +5,7 @@ export {
   RecordIdsList,
   GetRecordDetail,
   default
-} from '../ui';
+} from '../../ui';
 
 // For backward compatibility, also export the types
 export type {
@@ -15,4 +15,4 @@ export type {
   RecordIdsListProps,
   OpenGovRecord,
   GetRecordDetailProps
-} from '../ui'; 
+} from '../../ui'; 

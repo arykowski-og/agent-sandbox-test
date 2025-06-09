@@ -1,0 +1,301 @@
+{
+  "test_summary": {
+    "total_tests": 32,
+    "successful_tests": 0,
+    "failed_tests": 32,
+    "success_rate": "0.0%",
+    "average_execution_time": "4.95s",
+    "test_community": "demo",
+    "test_timestamp": "2025-06-08T15:05:40.555740"
+  },
+  "detailed_results": [
+    {
+      "timestamp": "2025-06-08T15:03:06.193107",
+      "test_name": "Basic Greeting",
+      "prompt": "Hello, I need help with permits. What can you do?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.102522134780884
+    },
+    {
+      "timestamp": "2025-06-08T15:03:16.805708",
+      "test_name": "Tool Listing",
+      "prompt": "What tools and functions do you have available for permit management?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 10.612555027008057
+    },
+    {
+      "timestamp": "2025-06-08T15:03:21.990226",
+      "test_name": "Get Records - Basic",
+      "prompt": "Can you show me all the permit records in the demo community?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 5.184441089630127
+    },
+    {
+      "timestamp": "2025-06-08T15:03:26.474344",
+      "test_name": "Get Records - With Filters",
+      "prompt": "Show me all active permit records in demo that were created in the last month",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.4840497970581055
+    },
+    {
+      "timestamp": "2025-06-08T15:03:31.167123",
+      "test_name": "List Available Record IDs",
+      "prompt": "What record IDs are available in the demo community?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.692672967910767
+    },
+    {
+      "timestamp": "2025-06-08T15:03:38.233835",
+      "test_name": "Get Specific Record",
+      "prompt": "Can you get details for record ID '12345' in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 7.066648006439209
+    },
+    {
+      "timestamp": "2025-06-08T15:03:42.952353",
+      "test_name": "Get Record Form Details",
+      "prompt": "Show me the form details for any permit record in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.718395709991455
+    },
+    {
+      "timestamp": "2025-06-08T15:03:47.752662",
+      "test_name": "Get Record Location",
+      "prompt": "What is the primary location for permit records in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.800238847732544
+    },
+    {
+      "timestamp": "2025-06-08T15:03:52.570738",
+      "test_name": "Get Record Attachments",
+      "prompt": "Show me attachments for permit records in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.817889928817749
+    },
+    {
+      "timestamp": "2025-06-08T15:03:56.663162",
+      "test_name": "Get Record Workflow Steps",
+      "prompt": "What are the workflow steps for permits in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.092341899871826
+    },
+    {
+      "timestamp": "2025-06-08T15:04:01.685572",
+      "test_name": "Get Users",
+      "prompt": "Show me all users in the demo community",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 5.022284984588623
+    },
+    {
+      "timestamp": "2025-06-08T15:04:05.470943",
+      "test_name": "Get Locations",
+      "prompt": "What locations are available in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 3.785205841064453
+    },
+    {
+      "timestamp": "2025-06-08T15:04:09.975014",
+      "test_name": "Get Departments",
+      "prompt": "List all departments in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.504000902175903
+    },
+    {
+      "timestamp": "2025-06-08T15:04:14.663127",
+      "test_name": "Get Record Types",
+      "prompt": "What types of permits are available in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.6880409717559814
+    },
+    {
+      "timestamp": "2025-06-08T15:04:18.989786",
+      "test_name": "Get Record Type Details",
+      "prompt": "Show me details about permit types and their forms in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.32650899887085
+    },
+    {
+      "timestamp": "2025-06-08T15:04:23.244644",
+      "test_name": "Get Projects",
+      "prompt": "What projects exist in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.254783868789673
+    },
+    {
+      "timestamp": "2025-06-08T15:04:27.169294",
+      "test_name": "Get Inspection Steps",
+      "prompt": "Show me inspection steps in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 3.9245638847351074
+    },
+    {
+      "timestamp": "2025-06-08T15:04:32.143780",
+      "test_name": "Get Inspection Events",
+      "prompt": "What inspection events are scheduled in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.974369049072266
+    },
+    {
+      "timestamp": "2025-06-08T15:04:35.425401",
+      "test_name": "Get Inspection Results",
+      "prompt": "Show me recent inspection results in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 3.281445026397705
+    },
+    {
+      "timestamp": "2025-06-08T15:04:39.578199",
+      "test_name": "Get Inspection Templates",
+      "prompt": "What inspection type templates are available in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.152737617492676
+    },
+    {
+      "timestamp": "2025-06-08T15:04:43.547077",
+      "test_name": "Get Approval Steps",
+      "prompt": "Show me approval steps in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 3.9687559604644775
+    },
+    {
+      "timestamp": "2025-06-08T15:04:47.441876",
+      "test_name": "Get Document Steps",
+      "prompt": "What document generation steps exist in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 3.894639253616333
+    },
+    {
+      "timestamp": "2025-06-08T15:04:51.172413",
+      "test_name": "Get Payment Steps",
+      "prompt": "Show me payment steps for permits in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 3.730469226837158
+    },
+    {
+      "timestamp": "2025-06-08T15:04:55.337252",
+      "test_name": "Get Transactions",
+      "prompt": "What payment transactions exist in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.164761781692505
+    },
+    {
+      "timestamp": "2025-06-08T15:04:59.409272",
+      "test_name": "Get Ledger Entries",
+      "prompt": "Show me ledger entries in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.071922063827515
+    },
+    {
+      "timestamp": "2025-06-08T15:05:03.589099",
+      "test_name": "Get Files",
+      "prompt": "What files are available in demo?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.179728984832764
+    },
+    {
+      "timestamp": "2025-06-08T15:05:09.458152",
+      "test_name": "Get Organization Info",
+      "prompt": "Show me organization information for demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 5.868917226791382
+    },
+    {
+      "timestamp": "2025-06-08T15:05:16.233281",
+      "test_name": "Complex Permit Search",
+      "prompt": "I need to find all building permits in demo that are currently active, show me their locations, and tell me what inspection steps are required",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 6.775047063827515
+    },
+    {
+      "timestamp": "2025-06-08T15:05:22.366522",
+      "test_name": "Permit Application Guidance",
+      "prompt": "I want to apply for a new building permit in demo. What types are available, what forms do I need to fill out, and what fees should I expect?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 6.133169889450073
+    },
+    {
+      "timestamp": "2025-06-08T15:05:29.916446",
+      "test_name": "Inspection Scheduling Help",
+      "prompt": "Help me understand the inspection process in demo. What types of inspections are there, how do I schedule them, and what should I expect?",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 7.549820899963379
+    },
+    {
+      "timestamp": "2025-06-08T15:05:34.467743",
+      "test_name": "Invalid Community",
+      "prompt": "Show me permits for the community 'nonexistent_community_12345'",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 4.551072835922241
+    },
+    {
+      "timestamp": "2025-06-08T15:05:40.555573",
+      "test_name": "Invalid Record ID",
+      "prompt": "Get details for record ID 'invalid_record_999999' in demo",
+      "response": "ERROR: 'AIMessage' object has no attribute 'get'",
+      "success": false,
+      "observations": "Test failed with exception: 'AIMessage' object has no attribute 'get'",
+      "execution_time_seconds": 6.087640047073364
+    }
+  ]
+}
