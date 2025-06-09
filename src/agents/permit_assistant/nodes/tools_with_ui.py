@@ -24,7 +24,7 @@ async def tools_with_ui_node(state: AgentState, tools, model=None):
     print(f"🔧 DEBUG: Tool execution completed, now have {len(tool_result['messages'])} messages")
     print(f"🔧 DEBUG: Original messages: {len(original_messages)}")
     
-    # Look for get_records and get_record tool calls in the original messages
+    # Look for get_records and get_record tool calls in the original messages to emit UI
     found_ui_tool = False
     
     # Check the last message in original_messages for tool calls
@@ -162,9 +162,6 @@ async def tools_with_ui_node(state: AgentState, tools, model=None):
                                     # Add the UI message to the messages
                                     tool_result["messages"].append(ui_message)
                                     
-                                    # Mark that we've handled this with UI
-                                    tool_result["ui_handled"] = True
-                                    
                                 else:
                                     # Multiple records or get_records tool - use records_table UI component
                                     print(f"🔧 DEBUG: Using records_table UI - tool_name: '{tool_name}', len(records): {len(records)}")
@@ -232,9 +229,6 @@ async def tools_with_ui_node(state: AgentState, tools, model=None):
                                     
                                     # Add the UI message to the messages
                                     tool_result["messages"].append(ui_message)
-                                    
-                                    # Mark that we've handled this with UI, so we don't need to go back to chatbot
-                                    tool_result["ui_handled"] = True
                             else:
                                 print(f"🔧 DEBUG: No records found to display")
                                 
@@ -246,12 +240,7 @@ async def tools_with_ui_node(state: AgentState, tools, model=None):
     if not found_ui_tool:
         print(f"🔧 DEBUG: No UI tool calls found in original messages")
     
-    # Ensure ui_handled flag is properly set in the returned state
-    if tool_result.get("ui_handled", False):
-        print(f"🔧 DEBUG: Setting ui_handled=True in returned state")
-        return {
-            "messages": tool_result["messages"],
-            "ui_handled": True
-        }
-    else:
-        return tool_result 
+    # Always return tool results and let the chatbot provide a response
+    # The LLM will handle both successful results and failures appropriately
+    print(f"🔧 DEBUG: Returning tool results, flow will continue to chatbot for LLM response")
+    return tool_result 
