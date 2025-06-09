@@ -1,0 +1,27 @@
+{
+  "metadata": {
+    "thread_id": "ed436aa2-f5dd-4b39-930f-cc4ae61504f3",
+    "tool_call_id": "ff98d33d-0cbf-4985-9d1b-4045bd03f189",
+    "timestamp": "20250608_181340",
+    "analysis_date": "2025-06-08T18:13:40.483899"
+  },
+  "raw_data": {
+    "thread_data": {},
+    "tool_call_data": {},
+    "runs_data": {}
+  },
+  "ui_data": {
+    "records": [],
+    "tables": [],
+    "messages": [],
+    "tool_calls": [],
+    "ui_elements": []
+  },
+  "recommendations": {
+    "table_support": false,
+    "record_count": 0,
+    "needs_dynamic_ui": false,
+    "tool_calls_found": 0,
+    "messages_found": 0
+  }
+}
