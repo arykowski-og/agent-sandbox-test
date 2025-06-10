@@ -4,16 +4,13 @@ import { AIMessage, Checkpoint, Message } from "@langchain/langgraph-sdk";
 import { getContentString } from "../utils";
 import { BranchSwitcher, CommandBar } from "./shared";
 import { MarkdownText } from "../markdown-text";
-import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { cn } from "@/lib/utils";
 import { ToolCalls, ToolResult } from "./tool-calls";
 import { MessageContentComplex } from "@langchain/core/messages";
-import { Fragment } from "react/jsx-runtime";
 import { isAgentInboxInterruptSchema } from "@/lib/agent-inbox-interrupt";
 import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
-import { useArtifact } from "../artifact";
 
 function CustomComponent({
   message,
@@ -22,24 +19,27 @@ function CustomComponent({
   message: Message;
   thread: ReturnType<typeof useStreamContext>;
 }) {
-  const artifact = useArtifact();
   const { values } = useStreamContext();
   const customComponents = values.ui?.filter(
     (ui) => ui.metadata?.message_id === message.id,
   );
 
   if (!customComponents?.length) return null;
+  
+  // Instead of rendering the components inline, show an indicator
+  // The actual components will be rendered in the GenerativeUIPanel
   return (
-    <Fragment key={message.id}>
-      {customComponents.map((customComponent) => (
-        <LoadExternalComponent
-          key={customComponent.id}
-          stream={thread}
-          message={customComponent}
-          meta={{ ui: customComponent, artifact }}
-        />
-      ))}
-    </Fragment>
+    <div className="my-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+      <div className="flex items-center gap-2 text-sm text-blue-700">
+        <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+        <span>
+          {customComponents.length === 1 
+            ? "Interactive component generated" 
+            : `${customComponents.length} interactive components generated`}
+        </span>
+        <span className="text-blue-500">→ See right panel</span>
+      </div>
+    </div>
   );
 }
 

@@ -1,0 +1,48 @@
+import React from 'react';
+
+interface FinancialAssistantIconProps {
+  size?: number;
+  className?: string;
+}
+
+export function FinancialAssistantIcon({ size = 24, className = "" }: FinancialAssistantIconProps) {
+  return (
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox="0 0 101 101" 
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <defs>
+        <style>
+          {`
+            .cls-1 {
+              fill: #f86a0b;
+            }
+            .cls-2 {
+              fill: none;
+              stroke: #4b3fff;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+              stroke-width: 2.7px;
+            }
+          `}
+        </style>
+      </defs>
+      <g>
+        <path className="cls-2" d="M74.89,99.13H26.07v-2.17c0-3.35,2.72-6.07,6.07-6.07h36.67c3.35,0,6.07,2.72,6.07,6.07,0,0,0,2.17,0,2.17Z"/>
+        <line className="cls-2" x1="47.7" y1="90.24" x2="47.7" y2="41"/>
+        <line className="cls-2" x1="53.15" y1="90.24" x2="53.15" y2="35.17"/>
+        <path className="cls-2" d="M47.76,8.62v-3.98c0-1.53,1.24-2.77,2.77-2.77s2.77,1.24,2.77,2.77v3.98"/>
+        <polyline className="cls-2" points="95.74 54.7 80.57 23.36 65.4 54.7"/>
+        <line className="cls-2" x1="61.31" y1="23.36" x2="86.64" y2="23.36"/>
+        <polyline className="cls-2" points="37.08 54.7 21.91 23.36 6.75 54.7"/>
+        <line className="cls-2" x1="15.85" y1="23.36" x2="41.28" y2="23.36"/>
+        <path className="cls-2" d="M42.15,55.72c0,8.94-9.05,16.18-20.22,16.18S1.69,64.65,1.69,55.72h40.45Z"/>
+        <path className="cls-2" d="M99.29,55.72c0,8.94-9.05,16.18-20.22,16.18s-20.22-7.24-20.22-16.18h40.45-.01Z"/>
+      </g>
+      <path className="cls-1" d="M59.13,13.66h-20c-.91,0-1.24,1.21-.44,1.66l9.55,5.51v11.03c0,.91,1.21,1.24,1.66.44l10-17.31c.34-.59-.09-1.34-.77-1.34"/>
+    </svg>
+  );
+} 

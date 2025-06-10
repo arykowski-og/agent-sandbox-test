@@ -6,6 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AgentCard } from "./agent-card";
 import { Header } from "@/components/ui/header";
+import { OpenDataIcon } from "../icons/open-data";
+import { PermitAssistantIcon } from "../icons/permit-assistant";
+import { FinancialAssistantIcon } from "../icons/financial-assistant";
+import { BudgetIcon } from "../icons/budget";
+import { CitizenIcon } from "../icons/citizen";
 import {
   Select,
   SelectContent,
@@ -20,7 +25,7 @@ const agents = [
     id: "open_data_agent",
     name: "Open Data Agent",
     description: "Search and analyze open government datasets through CKAN data portals. Find public data for research and analysis.",
-    icon: "📊",
+    icon: <OpenDataIcon size={32} />,
     category: "Data & Analytics",
     department: "Information Technology",
     difficulty: "Intermediate",
@@ -33,7 +38,7 @@ const agents = [
     id: "permit_assistant",
     name: "Permit Processing Assistant",
     description: "Streamline permit applications by auto-checking compliance requirements and flagging incomplete submissions.",
-    icon: "📋",
+    icon: <PermitAssistantIcon size={32} />,
     category: "Permits",
     department: "Planning",
     difficulty: "Intermediate",
@@ -46,7 +51,7 @@ const agents = [
     id: "finance_assistant",
     name: "Finance Assistant",
     description: "AI-powered financial data analysis using OpenGov FIN GraphQL API. Query budgets, expenditures, revenues, and generate insights.",
-    icon: "🏦",
+    icon: <FinancialAssistantIcon size={32} />,
     category: "Finance",
     department: "Finance",
     difficulty: "Intermediate",
@@ -60,7 +65,7 @@ const agents = [
     id: "budget_analyzer",
     name: "Budget Analyzer Pro",
     description: "Automatically analyze budget variances, identify spending patterns, and generate comprehensive reports.",
-    icon: "📈",
+    icon: <BudgetIcon size={32} />,
     category: "Finance",
     department: "Finance",
     difficulty: "Easy",
@@ -73,7 +78,7 @@ const agents = [
     id: "citizen_query",
     name: "Citizen Query Bot",
     description: "Handle common citizen inquiries 24/7, provide instant answers about services, and route complex issues.",
-    icon: "💬",
+    icon: <CitizenIcon size={32} />,
     category: "Community",
     department: "Operations",
     difficulty: "Easy",
