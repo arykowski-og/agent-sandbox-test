@@ -2,8 +2,10 @@
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, AIMessage, ToolMessage
-from ..config import FINANCE_TOOL_PROMPT, get_settings
-from ..types import FinanceState
+
+# Use absolute imports for LangGraph compatibility
+from src.agents.finance_assistant.config import FINANCE_TOOL_PROMPT, get_settings
+from src.agents.finance_assistant.types import FinanceState
 
 # Initialize the tool model
 settings = get_settings()

@@ -1,7 +1,9 @@
 """MCP client for loading OpenGov FIN tools"""
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from ..config import get_settings
+
+# Use absolute imports for LangGraph compatibility
+from src.agents.finance_assistant.config import get_settings
 
 async def get_finance_tools():
     """Get tools from the OpenGov FIN GraphQL MCP server"""

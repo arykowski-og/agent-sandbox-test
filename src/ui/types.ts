@@ -74,4 +74,101 @@ export interface OpenGovRecord {
 export interface GetRecordDetailProps {
   record: OpenGovRecord;
   community?: string;
+}
+
+// Dynamic UI Schema Types
+export interface UIFieldSchema {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'currency' | 'textarea' | 'dropdown' | 'file' | 'boolean' | 'email' | 'phone' | 'url' | 'status' | 'badge';
+  required?: boolean;
+  placeholder?: string;
+  options?: Array<{ value: string; label: string }>;
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+    message?: string;
+  };
+  format?: {
+    prefix?: string;
+    suffix?: string;
+    dateFormat?: string;
+    currency?: string;
+  };
+  display?: {
+    width?: string;
+    color?: string;
+    backgroundColor?: string;
+    icon?: string;
+  };
+}
+
+export interface UISectionSchema {
+  title: string;
+  description?: string;
+  fields: UIFieldSchema[];
+  layout?: 'grid' | 'list' | 'inline';
+  columns?: number;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+  actions?: UIActionSchema[];
+}
+
+export interface UITabSchema {
+  id: string;
+  label: string;
+  count?: number;
+  sections: UISectionSchema[];
+  actions?: UIActionSchema[];
+}
+
+export interface UIActionSchema {
+  id: string;
+  label: string;
+  type: 'primary' | 'secondary' | 'danger' | 'link';
+  icon?: string;
+  disabled?: boolean;
+  confirmation?: {
+    title: string;
+    message: string;
+  };
+}
+
+export interface UIHeaderSchema {
+  title: string;
+  subtitle?: string;
+  status?: {
+    label: string;
+    color: string;
+    icon?: string;
+  };
+  metadata: Array<{
+    label: string;
+    value: string;
+    type?: 'text' | 'link' | 'date' | 'badge' | 'status';
+    icon?: string;
+  }>;
+  actions?: UIActionSchema[];
+}
+
+export interface UISchema {
+  type: 'detail' | 'table' | 'form';
+  header?: UIHeaderSchema;
+  tabs?: UITabSchema[];
+  sections?: UISectionSchema[];
+  actions?: UIActionSchema[];
+  data: { [key: string]: any };
+}
+
+export interface DynamicUIProps {
+  schema: UISchema;
+  onAction?: (actionId: string, data?: any) => void;
+  onFieldChange?: (fieldKey: string, value: any) => void;
+}
+
+export interface DynamicRecordDetailProps {
+  schema: UISchema;
+  community?: string;
+  onAction?: (actionId: string, data?: any) => void;
 } 

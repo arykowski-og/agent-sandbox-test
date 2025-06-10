@@ -3,9 +3,11 @@
 import asyncio
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import tools_condition
-from .types import FinanceState
-from .nodes import chatbot_node, tool_node
-from .tools import get_finance_tools
+
+# Use absolute imports for LangGraph compatibility
+from src.agents.finance_assistant.types import FinanceState
+from src.agents.finance_assistant.nodes import chatbot_node, tool_node
+from src.agents.finance_assistant.tools import get_finance_tools
 
 async def create_finance_agent():
     """Create the finance assistant agent with dual-model approach and MCP tools"""
@@ -56,4 +58,55 @@ async def create_finance_agent():
     print("   - Chatbot Node: gpt-4o (conversation & tool decisions)")
     print("   - Tools Node: o4-mini-2025-04-16 (GraphQL execution)")
     
-    return compiled_graph 
+    return compiled_graph
+
+# For LangGraph compatibility - create graph lazily
+def _create_graph_sync():
+    """Create graph synchronously for LangGraph"""
+    try:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(create_finance_agent())
+    except RuntimeError:
+        # No event loop running
+        return asyncio.run(create_finance_agent())
+
+# Module-level graph - will be created when first accessed
+graph = None
+
+def get_graph():
+    """Get the finance assistant graph, creating it if necessary"""
+    global graph
+    if graph is None:
+        graph = _create_graph_sync()
+    return graph
+
+# For LangGraph compatibility, set graph at module level
+try:
+    # Only create if we're not in an async context
+    loop = asyncio.get_event_loop()
+    if not loop.is_running():
+        graph = _create_graph_sync()
+except RuntimeError:
+    # No event loop, safe to create
+    graph = _create_graph_sync()
+except Exception:
+    # Any other error, defer creation
+    pass
+
+if __name__ == "__main__":
+    # For testing the agent locally
+    print("🏦 Finance Assistant with OpenGov FIN API is ready!")
+    print("=" * 60)
+    print("Features enabled:")
+    print("  ✅ OpenGov FIN GraphQL API integration")
+    print("  ✅ Financial data analysis and reporting")
+    print("  ✅ Budget and expenditure tracking")
+    print("  ✅ Revenue analysis and forecasting")
+    print("  ✅ Dual-model approach for optimal performance")
+    print("  ✅ Conversation memory and persistence")
+    print()
+    print("🤖 Chat model: gpt-4o")
+    print("🔧 Tool model: o4-mini-2025-04-16")
+    print()
+    print("Use 'langgraph dev' to start the development server")
+    print("Access via agent-chat-ui with assistant=finance_assistant") 

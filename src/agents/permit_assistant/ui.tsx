@@ -4,6 +4,7 @@ export {
   RecordDetail,
   RecordIdsList,
   GetRecordDetail,
+  DynamicRecordDetail,
   default
 } from '../../ui';
 
@@ -14,5 +15,7 @@ export type {
   RecordDetailProps,
   RecordIdsListProps,
   OpenGovRecord,
-  GetRecordDetailProps
+  GetRecordDetailProps,
+  DynamicRecordDetailProps,
+  UISchema
 } from '../../ui'; 
