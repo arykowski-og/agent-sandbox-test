@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { RecordsTableProps, Record } from './types';
 
 // Utility function to send message to agent chat UI
@@ -135,6 +135,11 @@ const sendMessageToChat = async (message: string) => {
 };
 
 const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, onRecordClick }) => {
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
+
   if (!records || records.length === 0) {
     return (
       <div style={{ 
@@ -162,15 +167,17 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
 
   // Dynamically determine columns based on actual data
   const generateColumnsFromData = (records: Record[]) => {
-    // Priority order for common fields - these will appear first if present
+    // Priority order for common fields - these will appear first if present (excluding status)
     const priorityFields = [
       { key: 'recordNumber', label: 'Record #', width: '120px' },
       { key: 'recordType', label: 'Record Type', width: '200px' },
-      { key: 'status', label: 'Status', width: '120px' },
       { key: 'dateSubmitted', label: 'Date Submitted', width: '140px' },
       { key: 'applicantName', label: 'Applicant', width: '180px' },
       { key: 'address', label: 'Address', width: '250px' },
     ];
+
+    // Status field configuration - will be added as the last column
+    const statusField = { key: 'status', label: 'Status', width: '120px' };
 
     // Additional fields that might be present - these will appear after priority fields
     const additionalFieldMappings: { [key: string]: { label: string; width: string } } = {
@@ -195,14 +202,14 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
     const allKeys = new Set<string>();
     records.forEach(record => {
       Object.keys(record).forEach(key => {
-        // Skip internal/system fields
-        if (!['id', 'type', 'attributes', 'relationships'].includes(key)) {
+        // Skip internal/system fields and status (handled separately)
+        if (!['id', 'type', 'attributes', 'relationships', 'status'].includes(key)) {
           allKeys.add(key);
         }
       });
     });
 
-    // Start with priority fields that have data
+    // Start with priority fields that have data (excluding status)
     const visibleColumns = priorityFields.filter(field => 
       records.some(record => {
         const value = record[field.key];
@@ -230,10 +237,80 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
       }
     });
 
+    // Always add status column as the last column if it has data
+    const hasStatusData = records.some(record => {
+      const value = record[statusField.key];
+      return value !== null && value !== undefined && value !== '';
+    });
+
+    if (hasStatusData) {
+      visibleColumns.push(statusField);
+    }
+
     return visibleColumns;
   };
 
   const visibleFields = generateColumnsFromData(records);
+
+  // Sorting functionality
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedRecords = useMemo(() => {
+    if (!sortConfig) {
+      return records;
+    }
+
+    return [...records].sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      // Handle null/undefined values
+      if (aValue === null || aValue === undefined) {
+        if (bValue === null || bValue === undefined) return 0;
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      if (bValue === null || bValue === undefined) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+
+      // Handle different data types
+      let comparison = 0;
+      
+      // Date fields
+      if (sortConfig.key.includes('At') || sortConfig.key.includes('Date') || sortConfig.key === 'dateSubmitted') {
+        const aDate = new Date(aValue);
+        const bDate = new Date(bValue);
+        if (!isNaN(aDate.getTime()) && !isNaN(bDate.getTime())) {
+          comparison = aDate.getTime() - bDate.getTime();
+        } else {
+          comparison = String(aValue).localeCompare(String(bValue));
+        }
+      }
+      // Numeric fields
+      else if (typeof aValue === 'number' && typeof bValue === 'number') {
+        comparison = aValue - bValue;
+      }
+      // Boolean fields
+      else if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
+        comparison = aValue === bValue ? 0 : aValue ? 1 : -1;
+      }
+      // String fields (default)
+      else {
+        comparison = String(aValue).localeCompare(String(bValue), undefined, { 
+          numeric: true, 
+          sensitivity: 'base' 
+        });
+      }
+
+      return sortConfig.direction === 'asc' ? comparison : -comparison;
+    });
+  }, [records, sortConfig]);
 
   // Helper function to format field values based on field type
   const formatFieldValue = (record: Record, field: { key: string; label: string; width: string }) => {
@@ -412,6 +489,7 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
               {visibleFields.map((field, index) => (
                 <th 
                   key={field.key}
+                  onClick={() => handleSort(field.key)}
                   style={{ 
                     padding: '12px 16px',
                     textAlign: 'left',
@@ -421,24 +499,40 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
                     width: field.width,
                     borderRight: index < visibleFields.length - 1 ? '1px solid #e1e5e9' : 'none',
                     cursor: 'pointer',
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    transition: 'background-color 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     {field.label}
-                    <span style={{ color: '#9ca3af', fontSize: '12px' }}>⇅</span>
+                    <span style={{ 
+                      color: sortConfig?.key === field.key ? '#374151' : '#9ca3af', 
+                      fontSize: '12px',
+                      fontWeight: sortConfig?.key === field.key ? 'bold' : 'normal'
+                    }}>
+                      {sortConfig?.key === field.key 
+                        ? (sortConfig.direction === 'asc' ? '↑' : '↓')
+                        : '⇅'
+                      }
+                    </span>
                   </div>
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {records.map((record, index) => (
+            {sortedRecords.map((record, index) => (
               <tr 
                 key={record.id || index}
                 style={{ 
                   backgroundColor: 'white',
-                  borderBottom: index < records.length - 1 ? '1px solid #f1f5f9' : 'none',
+                  borderBottom: index < sortedRecords.length - 1 ? '1px solid #f1f5f9' : 'none',
                   transition: 'background-color 0.15s ease'
                 }}
                 onMouseEnter={(e) => {
