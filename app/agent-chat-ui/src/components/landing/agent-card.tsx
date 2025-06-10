@@ -10,7 +10,7 @@ interface Agent {
   id: string;
   name: string;
   description: string;
-  icon: string;
+  icon: string | React.ReactElement;
   category: string;
   department: string;
   difficulty: string;
@@ -50,7 +50,13 @@ export function AgentCard({ agent, viewMode }: AgentCardProps) {
     return (
       <div className="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-6">
         <div className="flex items-start gap-6">
-          <div className="text-4xl">{agent.icon}</div>
+          <div className="flex items-center justify-center">
+            {typeof agent.icon === 'string' ? (
+              <span className="text-4xl">{agent.icon}</span>
+            ) : (
+              <div className="scale-125">{agent.icon}</div>
+            )}
+          </div>
           
           <div className="flex-1">
             <div className="flex items-start justify-between mb-3">
@@ -102,7 +108,13 @@ export function AgentCard({ agent, viewMode }: AgentCardProps) {
     <div className="bg-white rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
-          <div className="text-3xl">{agent.icon}</div>
+          <div className="flex items-center justify-center">
+            {typeof agent.icon === 'string' ? (
+              <span className="text-3xl">{agent.icon}</span>
+            ) : (
+              <div>{agent.icon}</div>
+            )}
+          </div>
           <Badge 
             variant="outline" 
             className={getDifficultyColor(agent.difficulty)}

@@ -3,6 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { OpenGovLogo } from "../landing/opengov-logo";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   showBackButton?: boolean;
@@ -11,6 +12,12 @@ interface HeaderProps {
 }
 
 export function Header({ showBackButton = false, onBackClick, rightButtons }: HeaderProps) {
+  const router = useRouter();
+
+  const handleMyAgentsClick = () => {
+    router.push('/');
+  };
+
   return (
     <header className="bg-white border-b border-slate-200 shadow-sm">
       <div className="flex items-center justify-between h-16 px-4">
@@ -25,10 +32,14 @@ export function Header({ showBackButton = false, onBackClick, rightButtons }: He
             rightButtons
           ) : (
             <>
-              <Button variant="ghost" className="text-slate-600 hover:text-slate-900">
+              <Button variant="ghost" className="text-slate-600 hover:text-slate-900 cursor-pointer">
                 Help & Support
               </Button>
-              <Button variant="default" className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                variant="default" 
+                className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                onClick={handleMyAgentsClick}
+              >
                 My Agents
               </Button>
             </>
