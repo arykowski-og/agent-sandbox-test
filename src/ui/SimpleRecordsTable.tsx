@@ -1,7 +1,140 @@
 import React from 'react';
 import { RecordsTableProps, Record } from './types';
 
-const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community }) => {
+// Utility function to send message to agent chat UI
+const sendMessageToChat = async (message: string) => {
+  try {
+    // Find the specific textarea with placeholder "Type your message..."
+    const chatInput = document.querySelector('textarea[placeholder="Type your message..."]') as HTMLTextAreaElement;
+    
+    if (chatInput) {
+      // Focus the input first
+      chatInput.focus();
+      
+      // Clear the input
+      chatInput.value = '';
+      
+      // Use React's descriptor to set the value properly
+      const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+      if (valueSetter) {
+        valueSetter.call(chatInput, message);
+      } else {
+        chatInput.value = message;
+      }
+      
+      // Create a proper React SyntheticEvent-like object
+      const createSyntheticEvent = (type: string) => {
+        const event = new Event(type, { bubbles: true });
+        
+        // Add React-specific properties
+        Object.defineProperty(event, 'target', {
+          writable: false,
+          value: chatInput
+        });
+        Object.defineProperty(event, 'currentTarget', {
+          writable: false,
+          value: chatInput
+        });
+        
+        return event;
+      };
+      
+      // Dispatch input event
+      chatInput.dispatchEvent(createSyntheticEvent('input'));
+      
+      // Try to find and call React's onChange handler directly
+      const reactProps = Object.keys(chatInput).find(key => key.startsWith('__reactProps'));
+      if (reactProps) {
+        const props = (chatInput as any)[reactProps];
+        if (props?.onChange) {
+          props.onChange({
+            target: chatInput,
+            currentTarget: chatInput,
+            type: 'change'
+          });
+        }
+      }
+      
+      // Alternative: try to find React fiber
+      const reactKeys = Object.keys(chatInput).filter(key => 
+        key.startsWith('__reactInternalInstance') || 
+        key.startsWith('__reactFiber')
+      );
+      
+      for (const key of reactKeys) {
+        const fiber = (chatInput as any)[key];
+        if (fiber?.memoizedProps?.onChange) {
+          fiber.memoizedProps.onChange({
+            target: chatInput,
+            currentTarget: chatInput,
+            type: 'change'
+          });
+          break;
+        }
+      }
+      
+      console.log('Message populated in chat input:', message);
+      
+      // Try multiple submission approaches
+      const attemptSubmission = () => {
+        const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+        console.log('Submit button found:', !!submitButton);
+        console.log('Submit button disabled:', submitButton?.disabled);
+        console.log('Submit button text:', submitButton?.textContent);
+        
+        if (submitButton && submitButton.textContent?.includes('Send')) {
+          if (!submitButton.disabled) {
+            submitButton.click();
+            console.log('✅ Message automatically submitted to LLM:', message);
+            return true;
+          }
+        }
+        
+        // If button is disabled, try Enter key approach
+        console.log('🔄 Trying Enter key submission...');
+        const enterEvent = new KeyboardEvent('keydown', {
+          key: 'Enter',
+          code: 'Enter',
+          keyCode: 13,
+          which: 13,
+          bubbles: true,
+          cancelable: true
+        });
+        
+        // Prevent default to avoid new line, then manually trigger form submission
+        chatInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            const form = chatInput.closest('form');
+            if (form) {
+              // Manually call the form's onSubmit handler
+              const formSubmitEvent = new Event('submit', { bubbles: true, cancelable: true });
+              form.dispatchEvent(formSubmitEvent);
+              console.log('📝 Form submission triggered via Enter key');
+            }
+          }
+        }, { once: true });
+        
+        chatInput.dispatchEvent(enterEvent);
+        return false;
+      };
+      
+      // Try submission with multiple delays
+      setTimeout(attemptSubmission, 100);
+      setTimeout(attemptSubmission, 300);
+      setTimeout(attemptSubmission, 500);
+      
+    } else {
+      console.warn('Chat input not found. Make sure you are on the agent chat UI page.');
+      alert(`Chat interface not found. Message: ${message}`);
+    }
+  } catch (error) {
+    console.error('Failed to send message to chat:', error);
+    alert(`Failed to send message: ${message}`);
+  }
+};
+
+const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, onRecordClick }) => {
   if (!records || records.length === 0) {
     return (
       <div style={{ 
@@ -142,12 +275,36 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community })
     }
     
     if (field.key === 'recordNumber') {
+      const handleRecordClick = async () => {
+        if (value && value !== '-') {
+          const message = `I'd like to view record ${value}`;
+          
+          if (onRecordClick) {
+            onRecordClick(value);
+          } else {
+            // Send message to chat
+            await sendMessageToChat(message);
+          }
+        }
+      };
+
       return (
         <span 
+          onClick={handleRecordClick}
           style={{ 
             color: '#2563eb',
             fontWeight: 500,
-            fontSize: '14px'
+            fontSize: '14px',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            textDecorationColor: 'transparent',
+            transition: 'text-decoration-color 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.textDecorationColor = '#2563eb';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.textDecorationColor = 'transparent';
           }}
         >
           {value}
