@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
-import ThreadHistory from "./history";
+import { SimpleThreadHistory } from "./simple-thread-history";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
@@ -48,6 +48,7 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { Header } from "../ui/header";
+import { GenerativeUIPanel } from "./generative-ui-panel";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -262,60 +263,23 @@ export function Thread() {
       {/* Fixed Header */}
       <Header rightButtons={headerRightButtons} />
       
-      {/* Main content area below header */}
+      {/* Main content area below header - Two panel layout */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="relative hidden lg:flex">
-          <motion.div
-            className="absolute z-20 h-full overflow-hidden border-r bg-white"
-            style={{ width: 300 }}
-            animate={
-              isLargeScreen
-                ? { x: chatHistoryOpen ? 0 : -300 }
-                : { x: chatHistoryOpen ? 0 : -300 }
-            }
-            initial={{ x: -300 }}
-            transition={
-              isLargeScreen
-                ? { type: "spring", stiffness: 300, damping: 30 }
-                : { duration: 0 }
-            }
-          >
-            <div
-              className="relative h-full"
-              style={{ width: 300 }}
-            >
-              <ThreadHistory />
+        {/* Left Panel - Chat Interface (dynamic width based on chat history) */}
+        <div className={cn(
+          "flex border-r bg-white transition-all duration-300",
+          chatHistoryOpen ? "w-[750px]" : "w-[450px]"
+        )}>
+          {/* Chat History Sidebar */}
+          {chatHistoryOpen && (
+            <div className="w-[300px] h-full border-r bg-white">
+              <SimpleThreadHistory />
             </div>
-          </motion.div>
-        </div>
-
-        <div
-          className={cn(
-            "grid w-full grid-cols-[1fr_0fr] transition-all duration-500",
-            artifactOpen && "grid-cols-[3fr_2fr]",
           )}
-        >
-          <motion.div
-            className={cn(
-              "relative flex min-w-0 flex-1 flex-col overflow-hidden",
-              !chatStarted && "grid-rows-[1fr]",
-            )}
-            layout={isLargeScreen}
-            animate={{
-              marginLeft: chatHistoryOpen ? (isLargeScreen ? 300 : 0) : 0,
-              width: chatHistoryOpen
-                ? isLargeScreen
-                  ? "calc(100% - 300px)"
-                  : "100%"
-                : "100%",
-            }}
-            transition={
-              isLargeScreen
-                ? { type: "spring", stiffness: 300, damping: 30 }
-                : { duration: 0 }
-            }
-          >
-            {/* Chat controls on the left side of main panel */}
+
+          {/* Chat Content */}
+          <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+            {/* Chat controls */}
             <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
               <TooltipIconButton
                 size="lg"
@@ -339,7 +303,7 @@ export function Thread() {
                   !chatStarted && "mt-[25vh] flex flex-col items-stretch",
                   chatStarted && "grid grid-rows-[1fr_auto]",
                 )}
-                contentClassName="pt-8 pb-16  max-w-3xl mx-auto flex flex-col gap-4 w-full"
+                contentClassName="pt-8 pb-16 flex flex-col gap-4 w-full"
                 content={
                   <>
                     {messages
@@ -391,7 +355,7 @@ export function Thread() {
                     <div
                       ref={dropRef}
                       className={cn(
-                        "bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all",
+                        "bg-muted relative z-10 mx-auto mb-8 w-full rounded-2xl shadow-xs transition-all",
                         dragOver
                           ? "border-primary border-2 border-dotted"
                           : "border border-solid",
@@ -399,7 +363,7 @@ export function Thread() {
                     >
                       <form
                         onSubmit={handleSubmit}
-                        className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2"
+                        className="mx-auto grid grid-rows-[1fr_auto] gap-2"
                       >
                         <ContentBlocksPreview
                           blocks={contentBlocks}
@@ -438,7 +402,7 @@ export function Thread() {
                                 htmlFor="render-tool-calls"
                                 className="text-sm text-gray-600"
                               >
-                                Hide Tool Calls
+                                Hide Tools
                               </Label>
                             </div>
                           </div>
@@ -448,7 +412,7 @@ export function Thread() {
                           >
                             <Plus className="size-5 text-gray-600" />
                             <span className="text-sm text-gray-600">
-                              Upload PDF or Image
+                              Upload File
                             </span>
                           </Label>
                           <input
@@ -486,22 +450,13 @@ export function Thread() {
                   </div>
                 }
               />
-            </StickToBottom>
-          </motion.div>
-          <div className="relative flex flex-col border-l">
-            <div className="absolute inset-0 flex min-w-[30vw] flex-col">
-              <div className="grid grid-cols-[1fr_auto] border-b p-4">
-                <ArtifactTitle className="truncate overflow-hidden" />
-                <button
-                  onClick={closeArtifact}
-                  className="cursor-pointer"
-                >
-                  <XIcon className="size-5" />
-                </button>
-              </div>
-              <ArtifactContent className="relative flex-grow" />
+                          </StickToBottom>
             </div>
-          </div>
+        </div>
+
+        {/* Right Panel - Generative UI Components */}
+        <div className="flex-1 bg-gray-50">
+          <GenerativeUIPanel />
         </div>
       </div>
     </div>

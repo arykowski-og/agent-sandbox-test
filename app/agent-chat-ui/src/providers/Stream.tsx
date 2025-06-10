@@ -39,7 +39,10 @@ const useTypedStream = useStream<
   }
 >;
 
-type StreamContextType = ReturnType<typeof useTypedStream>;
+type StreamContextType = ReturnType<typeof useTypedStream> & {
+  configuredApiUrl?: string;
+  configuredAssistantId?: string;
+};
 const StreamContext = createContext<StreamContextType | undefined>(undefined);
 
 async function sleep(ms = 4000) {
@@ -119,7 +122,11 @@ const StreamSession = ({
   }, [apiKey, apiUrl]);
 
   return (
-    <StreamContext.Provider value={streamValue}>
+    <StreamContext.Provider value={{
+      ...streamValue,
+      configuredApiUrl: apiUrl,
+      configuredAssistantId: assistantId
+    }}>
       {children}
     </StreamContext.Provider>
   );
@@ -163,6 +170,17 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
   const finalApiUrl = apiUrl || envApiUrl;
   // Use 'assistant' parameter if present, otherwise fall back to 'assistantId'
   const finalAssistantId = assistantAlias || assistantId || envAssistantId;
+
+  // Debug logging
+  console.log("StreamProvider debug:", {
+    envApiUrl,
+    envAssistantId,
+    apiUrl,
+    assistantId,
+    assistantAlias,
+    finalApiUrl,
+    finalAssistantId
+  });
 
   // Show the form if we: don't have an API URL, or don't have an assistant ID
   if (!finalApiUrl || !finalAssistantId) {
