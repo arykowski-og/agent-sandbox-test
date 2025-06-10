@@ -17,6 +17,7 @@ export interface Record {
 export interface RecordsTableProps {
   records: Record[];
   community?: string;
+  onRecordClick?: (recordId: string) => void;
 }
 
 export interface RecordDetailProps {
