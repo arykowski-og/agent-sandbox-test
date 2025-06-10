@@ -10,6 +10,7 @@ from src.agents.permit_assistant.types import AgentState
 from src.agents.permit_assistant.nodes import chatbot_node, tools_with_ui_node, should_continue_after_tools
 from src.agents.permit_assistant.tools import get_permit_tools
 from src.agents.permit_assistant.config import get_settings
+from src.agents.permit_assistant.follow_up_actions import extract_follow_up_actions_hook
 
 async def create_permit_agent():
     """Create the permit assistant agent with MCP tools and UI support"""

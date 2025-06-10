@@ -49,6 +49,7 @@ import {
 } from "./artifact";
 import { Header } from "../ui/header";
 import { GenerativeUIPanel } from "./generative-ui-panel";
+import { SuggestedActions } from "./suggested-actions";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -238,6 +239,43 @@ export function Thread() {
     setContentBlocks([]);
   };
 
+  const handleSuggestedActionClick = (prompt: string) => {
+    if (isLoading) return;
+    setInput(prompt);
+    // Auto-submit the suggested action
+    setFirstTokenReceived(false);
+
+    const newHumanMessage: Message = {
+      id: uuidv4(),
+      type: "human",
+      content: [{ type: "text", text: prompt }] as Message["content"],
+    };
+
+    const toolMessages = ensureToolCallsHaveResponses(stream.messages);
+
+    const context =
+      Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
+
+    stream.submit(
+      { messages: [...toolMessages, newHumanMessage], context },
+      {
+        streamMode: ["values"],
+        optimisticValues: (prev) => ({
+          ...prev,
+          context,
+          messages: [
+            ...(prev.messages ?? []),
+            ...toolMessages,
+            newHumanMessage,
+          ],
+        }),
+      },
+    );
+
+    setInput("");
+    setContentBlocks([]);
+  };
+
   const handleRegenerate = (
     parentCheckpoint: Checkpoint | null | undefined,
   ) => {
@@ -248,6 +286,45 @@ export function Thread() {
       checkpoint: parentCheckpoint,
       streamMode: ["values"],
     });
+  };
+
+  const handleSuggestedAction = (prompt: string) => {
+    if (isLoading) return;
+    
+    setInput(prompt);
+    
+    // Use setTimeout to ensure the input state is updated before submission
+    setTimeout(() => {
+      const newHumanMessage: Message = {
+        id: uuidv4(),
+        type: "human",
+        content: [{ type: "text", text: prompt }] as Message["content"],
+      };
+
+      const toolMessages = ensureToolCallsHaveResponses(stream.messages);
+      const context =
+        Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
+
+      stream.submit(
+        { messages: [...toolMessages, newHumanMessage], context },
+        {
+          streamMode: ["values"],
+          optimisticValues: (prev) => ({
+            ...prev,
+            context,
+            messages: [
+              ...(prev.messages ?? []),
+              ...toolMessages,
+              newHumanMessage,
+            ],
+          }),
+        },
+      );
+
+      setInput("");
+      setContentBlocks([]);
+      setFirstTokenReceived(false);
+    }, 0);
   };
 
   const chatStarted = !!threadId || !!messages.length;
@@ -321,6 +398,7 @@ export function Thread() {
                             message={message}
                             isLoading={isLoading}
                             handleRegenerate={handleRegenerate}
+                            onFollowUpAction={handleSuggestedAction}
                           />
                         ),
                       )}
@@ -332,6 +410,7 @@ export function Thread() {
                         message={undefined}
                         isLoading={isLoading}
                         handleRegenerate={handleRegenerate}
+                        onFollowUpAction={handleSuggestedAction}
                       />
                     )}
                     {isLoading && !firstTokenReceived && (
@@ -351,6 +430,13 @@ export function Thread() {
                     )}
 
                     <ScrollToBottom className="animate-in fade-in-0 zoom-in-95 absolute bottom-full left-1/2 mb-4 -translate-x-1/2" />
+
+                    {!chatStarted && (
+                      <SuggestedActions 
+                        onActionClick={handleSuggestedAction}
+                        className="animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+                      />
+                    )}
 
                     <div
                       ref={dropRef}

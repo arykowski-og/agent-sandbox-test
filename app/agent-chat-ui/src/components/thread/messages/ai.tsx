@@ -11,6 +11,7 @@ import { isAgentInboxInterruptSchema } from "@/lib/agent-inbox-interrupt";
 import { ThreadView } from "../agent-inbox";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { GenericInterruptView } from "./generic-interrupt";
+import { FollowUpActions } from "../follow-up-actions";
 
 function CustomComponent({
   message,
@@ -97,10 +98,12 @@ export function AssistantMessage({
   message,
   isLoading,
   handleRegenerate,
+  onFollowUpAction,
 }: {
   message: Message | undefined;
   isLoading: boolean;
   handleRegenerate: (parentCheckpoint: Checkpoint | null | undefined) => void;
+  onFollowUpAction?: (prompt: string) => void;
 }) {
   const content = message?.content ?? [];
   const contentString = getContentString(content);
@@ -185,6 +188,43 @@ export function AssistantMessage({
               isLastMessage={isLastMessage}
               hasNoAIOrToolMessages={hasNoAIOrToolMessages}
             />
+            
+            {/* Follow-up actions - only show for the last AI message with content and no interrupts */}
+            {isLastMessage && 
+             contentString.length > 0 && 
+             !threadInterrupt?.value && 
+             !isLoading && 
+             onFollowUpAction && (() => {
+               const actions = message && 'additional_kwargs' in message && message.additional_kwargs 
+                 ? (message.additional_kwargs as any)?.followUpActions 
+                 : undefined;
+               
+                               // Debug logging
+                console.log('🔍 Follow-up Actions Debug:', {
+                  messageId: message?.id,
+                  isLastMessage,
+                  hasActions: !!actions,
+                  actionsCount: actions?.length || 0,
+                  firstAction: actions?.[0]?.label || 'None',
+                  allActions: actions?.map((a: any) => a.label) || [],
+                  messageContent: typeof message?.content === 'string' 
+                    ? message.content.substring(0, 100) + '...' 
+                    : 'Complex content',
+                  hasAdditionalKwargs: !!(message && 'additional_kwargs' in message && message.additional_kwargs),
+                  additionalKwargsKeys: message && 'additional_kwargs' in message && message.additional_kwargs 
+                    ? Object.keys(message.additional_kwargs) 
+                    : []
+                });
+               
+               return (
+                 <FollowUpActions
+                   followUpActions={actions}
+                   onActionClick={onFollowUpAction}
+                   className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+                 />
+               );
+             })()}
+            
             <div
               className={cn(
                 "mr-auto flex items-center gap-2 transition-opacity",
