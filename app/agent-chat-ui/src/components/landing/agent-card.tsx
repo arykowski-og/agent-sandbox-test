@@ -91,7 +91,7 @@ export function AgentCard({ agent, viewMode }: AgentCardProps) {
               
               <Button 
                 onClick={agent.comingSoon ? undefined : handleTryAgent} 
-                className={agent.comingSoon ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}
+                className={agent.comingSoon ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 cursor-pointer"}
                 disabled={agent.comingSoon}
               >
                 <Zap className="h-4 w-4 mr-2" />
@@ -146,7 +146,7 @@ export function AgentCard({ agent, viewMode }: AgentCardProps) {
       <div className="px-6 pb-6">
         <Button 
           onClick={agent.comingSoon ? undefined : handleTryAgent} 
-          className={`w-full ${agent.comingSoon ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+          className={`w-full ${agent.comingSoon ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 cursor-pointer"}`}
           disabled={agent.comingSoon}
         >
           <Zap className="h-4 w-4 mr-2" />
