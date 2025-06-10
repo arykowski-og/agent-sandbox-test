@@ -7,6 +7,7 @@ from langgraph.graph.ui import push_ui_message
 from langchain_core.messages import AIMessage
 from src.agents.permit_assistant.types import AgentState
 from src.agents.permit_assistant.utils import process_records_for_ui, get_address_info, get_applicant_name, format_date, get_record_type_name
+from src.agents.permit_assistant.utils.schema_generator import generate_record_detail_schema, generate_records_table_schema
 
 async def tools_with_ui_node(state: AgentState, tools, model=None):
     """Execute tools and emit UI components for specific tools"""
@@ -131,36 +132,61 @@ async def tools_with_ui_node(state: AgentState, tools, model=None):
                                 print(f"🔧 DEBUG: Checking UI condition - tool_name: '{tool_name}', len(records): {len(records)}")
                                 print(f"🔧 DEBUG: Condition check: tool_name == 'get_record': {tool_name == 'get_record'}, len(records) == 1: {len(records) == 1}")
                                 if tool_name == 'get_record' and len(records) == 1:
-                                    # Single record - use get_record UI component
+                                    # Single record - use dynamic UI component
                                     record = records[0]
                                     
                                     # Get community from tool call args
                                     community = tool_call.get('args', {}).get('community', 'Unknown')
                                     
-                                    print(f"🔧 DEBUG: About to emit get_record UI for single record, community: {community}")
+                                    print(f"🔧 DEBUG: About to emit dynamic get_record UI for single record, community: {community}")
                                     
-                                    # Create AI message for UI association
-                                    record_number = record.get("attributes", {}).get("number", record.get("id", "Unknown"))
-                                    ui_message = AIMessage(
-                                        id=str(uuid.uuid4()),
-                                        content=f"Here are the details for record #{record_number}:"
-                                    )
-                                    
-                                    # Emit UI component for single record
-                                    print(f"🔧 DEBUG: Emitting get_record UI component with name='get_record'")
-                                    push_ui_message(
-                                        name="get_record",
-                                        props={
-                                            "record": record,
-                                            "community": community
-                                        },
-                                        message=ui_message
-                                    )
-                                    
-                                    print(f"✅ DEBUG: Successfully emitted get_record UI component for record {record_number}")
-                                    
-                                    # Add the UI message to the messages
-                                    tool_result["messages"].append(ui_message)
+                                    # Generate dynamic UI schema
+                                    try:
+                                        ui_schema = generate_record_detail_schema(record, community)
+                                        print(f"🔧 DEBUG: Generated UI schema with {len(ui_schema.get('tabs', []))} tabs")
+                                        
+                                        # Create AI message for UI association
+                                        record_number = record.get("attributes", {}).get("number", record.get("id", "Unknown"))
+                                        ui_message = AIMessage(
+                                            id=str(uuid.uuid4()),
+                                            content=f"Here are the details for record #{record_number}:"
+                                        )
+                                        
+                                        # Emit dynamic UI component for single record
+                                        print(f"🔧 DEBUG: Emitting dynamic_record_detail UI component")
+                                        push_ui_message(
+                                            name="dynamic_record_detail",
+                                            props={
+                                                "schema": ui_schema,
+                                                "community": community
+                                            },
+                                            message=ui_message
+                                        )
+                                        
+                                        print(f"✅ DEBUG: Successfully emitted dynamic_record_detail UI component for record {record_number}")
+                                        
+                                        # Add the UI message to the messages
+                                        tool_result["messages"].append(ui_message)
+                                        
+                                    except Exception as schema_error:
+                                        print(f"❌ DEBUG: Error generating UI schema: {schema_error}")
+                                        # Fallback to original UI
+                                        record_number = record.get("attributes", {}).get("number", record.get("id", "Unknown"))
+                                        ui_message = AIMessage(
+                                            id=str(uuid.uuid4()),
+                                            content=f"Here are the details for record #{record_number}:"
+                                        )
+                                        
+                                        push_ui_message(
+                                            name="get_record",
+                                            props={
+                                                "record": record,
+                                                "community": community
+                                            },
+                                            message=ui_message
+                                        )
+                                        
+                                        tool_result["messages"].append(ui_message)
                                     
                                 else:
                                     # Multiple records or get_records tool - use records_table UI component
