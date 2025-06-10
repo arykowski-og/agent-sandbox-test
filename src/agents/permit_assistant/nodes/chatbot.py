@@ -3,6 +3,7 @@
 from langchain_core.messages import SystemMessage
 from src.agents.permit_assistant.config import PERMIT_PROMPT
 from src.agents.permit_assistant.types import AgentState
+from src.agents.permit_assistant.follow_up_actions import create_follow_up_hook
 
 async def chatbot_node(state: AgentState, tools, model):
     """Handle LLM calls with system prompt injection"""
@@ -35,5 +36,31 @@ async def chatbot_node(state: AgentState, tools, model):
     else:
         print(f"🤖 DEBUG: LLM response without tool calls")
         print(f"🤖 DEBUG: Response content preview: {str(getattr(response, 'content', 'No content'))[:200]}...")
-        # This is a regular AI response, no tools called
-        return {"messages": [response]} 
+        
+        # Generate follow-up actions for non-tool responses
+        print(f"🤖 DEBUG: Generating follow-up actions...")
+        try:
+            from src.agents.permit_assistant.follow_up_actions import extract_follow_up_actions_hook
+            
+            # Create config for the hook
+            hook_kwargs = {
+                "config": {
+                    "llm": model,
+                    "configurable": {
+                        "messages": state["messages"]
+                    }
+                }
+            }
+            
+            # Apply the follow-up actions hook
+            response_with_actions = await extract_follow_up_actions_hook(response, **hook_kwargs)
+            print(f"🤖 DEBUG: Follow-up actions applied")
+            
+            return {"messages": [response_with_actions]}
+            
+        except Exception as e:
+            print(f"🤖 ERROR: Failed to generate follow-up actions: {e}")
+            import traceback
+            traceback.print_exc()
+            # Return original response if follow-up generation fails
+            return {"messages": [response]} 
