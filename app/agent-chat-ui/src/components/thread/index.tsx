@@ -50,6 +50,7 @@ import {
 import { Header } from "../ui/header";
 import { GenerativeUIPanel } from "./generative-ui-panel";
 import { SuggestedActions } from "./suggested-actions";
+import { ComponentBreadcrumbs } from "./component-breadcrumbs";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -142,6 +143,8 @@ export function Thread() {
   } = useFileUpload();
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
+  const [activeComponentIndex, setActiveComponentIndex] = useState(0);
+  const [navigationTarget, setNavigationTarget] = useState<number | null>(null);
 
   const stream = useStreamContext();
   const messages = stream.messages;
@@ -325,6 +328,12 @@ export function Thread() {
       setContentBlocks([]);
       setFirstTokenReceived(false);
     }, 0);
+  };
+
+  const handleNavigateToComponent = (index: number) => {
+    setNavigationTarget(index);
+    // Reset navigation target after a brief delay to allow the navigation to complete
+    setTimeout(() => setNavigationTarget(null), 100);
   };
 
   const chatStarted = !!threadId || !!messages.length;
@@ -540,9 +549,23 @@ export function Thread() {
             </div>
         </div>
 
-        {/* Right Panel - Generative UI Components */}
-        <div className="flex-1 bg-gray-50">
-          <GenerativeUIPanel />
+        {/* Right Panel - Generative UI Components with Breadcrumbs */}
+        <div className="flex flex-1 bg-gray-50">
+          {/* Generative UI Panel */}
+          <div className="flex-1">
+            <GenerativeUIPanel 
+              onActiveComponentChange={setActiveComponentIndex}
+              activeComponentIndex={navigationTarget ?? undefined}
+            />
+          </div>
+          
+          {/* Breadcrumb Navigation */}
+          <div className="w-[100px] border-l bg-white">
+            <ComponentBreadcrumbs 
+              onNavigateToComponent={handleNavigateToComponent}
+              activeComponentIndex={activeComponentIndex}
+            />
+          </div>
         </div>
       </div>
     </div>

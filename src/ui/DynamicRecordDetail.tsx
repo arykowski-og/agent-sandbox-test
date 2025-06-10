@@ -157,7 +157,10 @@ const DynamicRecordDetail: React.FC<DynamicRecordDetailProps> = ({
       if (!activeTabData) return null;
 
       return (
-        <div style={{ padding: '0 24px 24px 24px' }}>
+        <div style={{ 
+          padding: '0 24px 24px 24px',
+          minHeight: '463px'
+        }}>
           {/* Tab Header */}
           <div style={{ 
             display: 'flex', 
@@ -219,7 +222,10 @@ const DynamicRecordDetail: React.FC<DynamicRecordDetailProps> = ({
     // If no tabs, render sections directly
     if (schema.sections && schema.sections.length > 0) {
       return (
-        <div style={{ padding: '0 24px 24px 24px' }}>
+        <div style={{ 
+          padding: '0 24px 24px 24px',
+          minHeight: '400px'
+        }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {schema.sections.map((section, index) => (
               <DynamicSection
