@@ -43,6 +43,7 @@ http://localhost:3000/chat?assistantId=permit_assistant&apiUrl=http://localhost:
 - **Payment Processing**: Track fees, payments, and financial transactions
 - **Location Services**: Manage property locations and address verification
 - **User Management**: Handle applicants, guests, and stakeholder information
+- **Short-term Memory**: Maintains conversation context within each session for better continuity
 
 ### 📋 **Common Use Cases**
 
@@ -65,6 +66,32 @@ http://localhost:3000/chat?assistantId=permit_assistant&apiUrl=http://localhost:
 5. **Fee and Payment Information**
    - "What fees are required for this permit type?"
    - "Show payment history for permit #12345"
+
+## Short-term Memory
+
+The permit assistant now includes **short-term memory** that maintains conversation context within each session. This means:
+
+- **Conversation Continuity**: The assistant remembers what you discussed earlier in the same session
+- **Context Awareness**: References to "that permit" or "the previous application" are understood
+- **Follow-up Questions**: You can ask follow-up questions without repeating context
+- **Session-based**: Memory is maintained per thread/session but doesn't persist across different sessions
+
+### Memory Examples
+
+```
+User: "Show me permit #12345"
+Assistant: [Shows permit details]
+
+User: "What's the status of that permit?"
+Assistant: [Remembers #12345 and shows its status]
+
+User: "Schedule an inspection for it"
+Assistant: [Schedules inspection for permit #12345]
+```
+
+The memory is automatically managed - no special configuration required. Each conversation thread maintains its own memory context.
+
+**Note**: When running via `langgraph dev` (LangGraph API), persistence is handled automatically by the platform. When running locally or in tests, the agent uses an in-memory checkpointer for short-term memory.
 
 ## Example Queries
 

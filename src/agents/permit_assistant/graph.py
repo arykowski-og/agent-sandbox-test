@@ -1,9 +1,11 @@
 """Main graph construction for the permit assistant"""
 
 import asyncio
+import os
 from langgraph.graph import StateGraph
 from langgraph.prebuilt import tools_condition
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import InMemorySaver
 
 # Use absolute imports for LangGraph compatibility
 from src.agents.permit_assistant.types import AgentState
@@ -13,7 +15,7 @@ from src.agents.permit_assistant.config import get_settings
 from src.agents.permit_assistant.follow_up_actions import extract_follow_up_actions_hook
 
 async def create_permit_agent():
-    """Create the permit assistant agent with MCP tools and UI support"""
+    """Create the permit assistant agent with MCP tools, UI support, and short-term memory"""
     # Get configuration settings
     settings = get_settings()
     
@@ -38,7 +40,7 @@ async def create_permit_agent():
         else:
             print(f"   - {type(tool).__name__}")
     
-    print(f"🛠️ DEBUG: Creating graph with UI support...")
+    print(f"🛠️ DEBUG: Creating graph with UI support and short-term memory...")
     print(f"🛠️ DEBUG: Chat model: {settings.chat_model_name}")
     print(f"🛠️ DEBUG: Tool model: {settings.tool_model_name}")
     
@@ -79,8 +81,24 @@ async def create_permit_agent():
         }
     )
     
-    compiled_graph = workflow.compile()
-    print(f"🛠️ DEBUG: Graph compiled successfully with nodes: {list(compiled_graph.get_graph().nodes.keys())}")
+    # Only use custom checkpointer when not running in LangGraph API
+    # LangGraph API handles persistence automatically
+    is_langgraph_api = (
+        os.getenv("LANGGRAPH_API") == "true" or 
+        os.getenv("LANGGRAPH_RUNTIME") is not None or
+        "langgraph" in str(os.getenv("_", "")).lower() or
+        "uvicorn" in str(os.getenv("_", "")).lower()
+    )
+    
+    if is_langgraph_api:
+        # LangGraph API handles persistence automatically
+        compiled_graph = workflow.compile()
+        print(f"🛠️ DEBUG: Graph compiled for LangGraph API (automatic persistence) with nodes: {list(compiled_graph.get_graph().nodes.keys())}")
+    else:
+        # Create checkpointer for short-term memory when running locally
+        checkpointer = InMemorySaver()
+        compiled_graph = workflow.compile(checkpointer=checkpointer)
+        print(f"🛠️ DEBUG: Graph compiled with local short-term memory and nodes: {list(compiled_graph.get_graph().nodes.keys())}")
     
     return compiled_graph
 
@@ -128,7 +146,7 @@ if __name__ == "__main__":
     print("  ✅ Inspection scheduling and tracking")
     print("  ✅ Document and workflow management")
     print("  ✅ Payment and fee tracking")
-    print("  ✅ Conversation memory and persistence")
+    print("  ✅ Short-term conversation memory and persistence")
     print()
     print(f"🤖 Chat model: {settings.chat_model_name}")
     print(f"🔧 Tool model: {settings.tool_model_name}")

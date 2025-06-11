@@ -106,6 +106,33 @@ async def test_mcp_tools_loading():
         print(f"❌ Failed to load MCP tools: {e}")
         return False
 
+async def test_short_term_memory():
+    """Test if short-term memory is enabled in the permit assistant"""
+    try:
+        # Add src to path (go up one level from tests/ to project root, then into src/)
+        project_root = os.path.dirname(os.path.dirname(__file__))
+        src_path = os.path.join(project_root, 'src')
+        if src_path not in sys.path:
+            sys.path.insert(0, src_path)
+        
+        from agents.permit_assistant.graph import create_permit_agent
+        
+        # Create the agent
+        agent = await create_permit_agent()
+        
+        # Check if the agent has a checkpointer (indicates memory is enabled)
+        if hasattr(agent, 'checkpointer') and agent.checkpointer is not None:
+            print("✅ Short-term memory is enabled (checkpointer found)")
+            print(f"   Checkpointer type: {type(agent.checkpointer).__name__}")
+            return True
+        else:
+            print("❌ Short-term memory not enabled (no checkpointer found)")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Failed to test short-term memory: {e}")
+        return False
+
 def test_langgraph_config():
     """Test if langgraph.json includes the permit assistant"""
     try:
@@ -187,6 +214,13 @@ async def main():
         total_tests += 1
         if await test_mcp_tools_loading():
             tests_passed += 1
+    
+    print()
+    
+    # Test 7: Short-term memory
+    total_tests += 1
+    if await test_short_term_memory():
+        tests_passed += 1
     
     print()
     print("=" * 50)
