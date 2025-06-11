@@ -15,8 +15,16 @@ def format_date(date_string: Optional[str]) -> Optional[str]:
     except:
         return date_string
 
-def get_record_type_name(type_id: Optional[str], type_description: Optional[str]) -> str:
-    """Get a better record type name from ID and description"""
+def get_record_type_name(type_id: Optional[str], type_description: Optional[str], enhanced_relationships: Optional[Dict[str, Any]] = None) -> str:
+    """Get a better record type name from ID and description, with optional enhanced relationship data"""
+    
+    # First check if we have enhanced relationship data from recursive calls
+    if enhanced_relationships and "recordType" in enhanced_relationships:
+        record_type_rel = enhanced_relationships["recordType"]
+        if isinstance(record_type_rel, dict) and "resolved_name" in record_type_rel:
+            print(f"🔧 DEBUG: Using resolved record type name from enhanced relationship data: {record_type_rel['resolved_name']}")
+            return record_type_rel["resolved_name"]
+    
     # Use description if available and not empty
     if type_description and type_description.strip():
         return type_description.strip()
@@ -40,6 +48,15 @@ def get_address_info(record_data: Dict[str, Any], included_data: List[Dict[str, 
     try:
         relationships = record_data.get("relationships", {})
         print(f"🔧 DEBUG: Record {record_data.get('id')} location relationships: {[k for k in relationships.keys() if 'location' in k.lower()]}")
+        
+        # First check if we have enhanced relationship data from recursive calls
+        for key in ["primaryLocation", "location", "address", "site"]:
+            if key in relationships:
+                location_rel = relationships[key]
+                # Check for resolved address from recursive calls
+                if isinstance(location_rel, dict) and "resolved_address" in location_rel:
+                    print(f"🔧 DEBUG: Using resolved address from enhanced relationship data: {location_rel['resolved_address']}")
+                    return location_rel["resolved_address"]
         
         # Try different relationship keys for location
         location_rel = None
@@ -140,6 +157,15 @@ def get_applicant_name(record_data: Dict[str, Any], included_data: List[Dict[str
     try:
         relationships = record_data.get("relationships", {})
         print(f"🔧 DEBUG: Record {record_data.get('id')} relationships keys: {list(relationships.keys())}")
+        
+        # First check if we have enhanced relationship data from recursive calls
+        for key in ["applicant", "user", "owner", "primaryContact", "submittedBy"]:
+            if key in relationships:
+                applicant_rel = relationships[key]
+                # Check for resolved name from recursive calls
+                if isinstance(applicant_rel, dict) and "resolved_name" in applicant_rel:
+                    print(f"🔧 DEBUG: Using resolved name from enhanced relationship data: {applicant_rel['resolved_name']}")
+                    return applicant_rel["resolved_name"]
         
         # Try different relationship keys for applicant
         applicant_rel = None

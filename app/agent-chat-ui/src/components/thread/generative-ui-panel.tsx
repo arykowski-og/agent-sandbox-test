@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef, useState, useCallback } from "react";
 import { useStreamContext } from "@/providers/Stream";
 import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { useArtifact } from "./artifact";
@@ -51,12 +51,23 @@ const agents = [
   },
 ];
 
-export function GenerativeUIPanel() {
+interface GenerativeUIPanelProps {
+  onActiveComponentChange?: (index: number) => void;
+  activeComponentIndex?: number;
+  onNavigateToComponent?: (index: number) => void;
+}
+
+export function GenerativeUIPanel({ 
+  onActiveComponentChange,
+  activeComponentIndex,
+  onNavigateToComponent 
+}: GenerativeUIPanelProps = {}) {
   const stream = useStreamContext();
   const artifact = useArtifact();
   const { values } = useStreamContext();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const prevComponentCountRef = useRef(0);
+  const componentRefs = useRef<(HTMLDivElement | null)[]>([]);
   
   // Get the current assistant ID from URL parameters or stream context
   const [assistantAlias] = useQueryState("assistant");
@@ -76,6 +87,77 @@ export function GenerativeUIPanel() {
   const displayableUIComponents = allUIComponents.filter(
     (ui) => ui && ui.metadata?.message_id
   );
+
+  // Update refs array when components change
+  useEffect(() => {
+    componentRefs.current = componentRefs.current.slice(0, displayableUIComponents.length);
+  }, [displayableUIComponents.length]);
+
+  // Navigation function
+  const navigateToComponent = useCallback((index: number) => {
+    const targetElement = componentRefs.current[index];
+    const scrollContainer = scrollContainerRef.current;
+    
+    if (targetElement && scrollContainer) {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const targetRect = targetElement.getBoundingClientRect();
+      const scrollTop = scrollContainer.scrollTop + (targetRect.top - containerRect.top);
+      
+      scrollContainer.scrollTo({
+        top: scrollTop,
+        behavior: 'smooth'
+      });
+    }
+  }, []);
+
+  // Set up intersection observer to track active component
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || !displayableUIComponents.length || !onActiveComponentChange) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the component that's most visible
+        let maxVisibleRatio = 0;
+        let mostVisibleIndex = 0;
+
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > maxVisibleRatio) {
+            maxVisibleRatio = entry.intersectionRatio;
+            const index = componentRefs.current.findIndex(ref => ref === entry.target);
+            if (index !== -1) {
+              mostVisibleIndex = index;
+            }
+          }
+        });
+
+        if (maxVisibleRatio > 0) {
+          onActiveComponentChange(mostVisibleIndex);
+        }
+      },
+      {
+        root: scrollContainer,
+        rootMargin: '-20% 0px -20% 0px',
+        threshold: [0, 0.25, 0.5, 0.75, 1]
+      }
+    );
+
+    // Observe all component elements
+    componentRefs.current.forEach((ref) => {
+      if (ref) observer.observe(ref);
+    });
+
+    return () => observer.disconnect();
+  }, [displayableUIComponents.length, onActiveComponentChange]);
+
+  // Handle external navigation requests
+  useEffect(() => {
+    if (typeof activeComponentIndex === 'number' && activeComponentIndex >= 0) {
+      navigateToComponent(activeComponentIndex);
+    }
+  }, [activeComponentIndex, navigateToComponent]);
 
   // Auto-scroll to new components when they're added
   useEffect(() => {
@@ -163,6 +245,9 @@ export function GenerativeUIPanel() {
         {displayableUIComponents.map((uiComponent, index) => (
           <div
             key={uiComponent.id}
+            ref={(el) => {
+              componentRefs.current[index] = el;
+            }}
             data-component-index={index}
             className="rounded-lg border bg-white p-4 shadow-sm"
           >
