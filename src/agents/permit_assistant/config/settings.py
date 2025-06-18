@@ -26,7 +26,7 @@ def get_settings() -> Settings:
     permit_assistant_dir = os.path.dirname(current_file_dir)       # permit_assistant/
     agents_dir = os.path.dirname(permit_assistant_dir)             # agents/
     src_dir = os.path.dirname(agents_dir)                          # src/
-    mcp_server_path = os.path.join(src_dir, "mcp-servers", "opengov_plc_mcp_server.py")
+    mcp_server_path = os.path.join(src_dir, "mcp-servers", "opengov_plc_app.py")
     
     # Get API keys
     api_key = os.getenv("OPENAI_API_KEY", "")

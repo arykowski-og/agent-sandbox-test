@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-OpenGov Permitting & Licensing MCP Server - COMPLETE VERSION (BACKWARD COMPATIBILITY)
+OpenGov Permitting & Licensing MCP Server - Government Agents App
 
-This MCP server provides tools to interact with the OpenGov Permitting & Licensing API.
-It supports OAuth2 Client Credentials authentication and provides tools for all API endpoints.
+This MCP server provides tools for government permitting agents to manage records,
+workflows, inspections, and administrative tasks in the OpenGov Permitting & Licensing system.
+Includes all administrative tools plus shared functionality for government agents.
 
-This is the original complete server maintained for backward compatibility.
-For specific personas, use:
-- opengov_plc_app.py (Government Agents)
-- opengov_plc_portal.py (Citizens)
+This version includes:
+- All shared tools (record management, viewing, status tracking)
+- Administrative tools (user management, workflow management, system configuration)
+- Full access to all records and system functions
 """
 
 import os
@@ -25,7 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize MCP server
-mcp = FastMCP("OpenGov Permitting & Licensing")
+mcp = FastMCP("OpenGov Permitting & Licensing - Government Agents")
 
 class OpenGovPLCClient:
     """Client for OpenGov Permitting & Licensing API"""
@@ -171,6 +172,8 @@ async def get_records(
     include_enhanced_details: bool = True
 ) -> Dict:
     """Get a list of records from the community with optional filtering, pagination, and enhanced details
+    
+    For government agents: Access to all records in the system for management purposes.
     
     Args:
         community: The community identifier
@@ -970,8 +973,8 @@ if __name__ == "__main__":
     # Check for command line argument to use HTTP transport
     if len(sys.argv) > 1 and sys.argv[1] == "--http":
         transport = "streamable-http"
-        print("Starting OpenGov PLC MCP Server on HTTP transport...")
+        print("Starting OpenGov PLC MCP Server (Government Agents) on HTTP transport...")
     else:
-        print("Starting OpenGov PLC MCP Server on stdio transport...")
+        print("Starting OpenGov PLC MCP Server (Government Agents) on stdio transport...")
     
     mcp.run(transport=transport) 

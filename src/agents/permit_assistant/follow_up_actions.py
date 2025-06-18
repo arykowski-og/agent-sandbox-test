@@ -9,7 +9,7 @@ class FollowUpAction(BaseModel):
     """Schema for a follow-up action"""
     label: str  # Short action label (2-4 words)
     prompt: str  # Complete question/request the user would ask
-    category: str  # permit|inspection|application|status|document|fee|compliance|general
+    category: str  # review|inspection|workflow|status|document|fee|compliance|general
 
 class FollowUpActionsMetadata(BaseModel):
     """Container for follow-up actions metadata"""
@@ -47,20 +47,20 @@ Respond with ONLY a JSON array in this exact format:
   {{
     "label": "Short Action Label",
     "prompt": "Complete question or request the user would ask",
-    "category": "permit|inspection|application|status|document|fee|compliance|general"
+    "category": "review|inspection|workflow|status|document|fee|compliance|general"
   }}
 ]
 
-Focus on practical next steps that would be most helpful given the conversation context. Make the prompts specific and actionable for permit and licensing workflows.
+Focus on practical next steps that would be most helpful for government permitting agents. Make the prompts specific and actionable for permit administration and record management.
 Categories:
-- permit: General permit questions and guidance
-- inspection: Scheduling, preparing for, or following up on inspections
-- application: Starting new applications or continuing existing ones
-- status: Checking status of permits, applications, or processes
-- document: Document requirements, submissions, or reviews
-- fee: Payment information, fee calculations, or billing questions
-- compliance: Code compliance, regulations, or requirements
-- general: Other helpful actions or general assistance
+- review: Reviewing pending records, applications, or change requests
+- inspection: Scheduling, conducting, or completing inspections
+- workflow: Managing workflow steps, approvals, or record progression
+- status: Checking or updating status of records, applications, or processes
+- document: Reviewing documents, attachments, or generating reports
+- fee: Processing payments, reviewing fees, or managing transactions
+- compliance: Code compliance checks, regulations, or requirements review
+- general: User management, system administration, or general assistance
 """
 
     try:
@@ -106,7 +106,7 @@ Categories:
             print(f"🔄 DEBUG: Processing action {i}: {action}")
             if all(key in action for key in ["label", "prompt", "category"]):
                 # Validate category
-                valid_categories = ["permit", "inspection", "application", "status", "document", "fee", "compliance", "general"]
+                valid_categories = ["review", "inspection", "workflow", "status", "document", "fee", "compliance", "general"]
                 if action["category"] in valid_categories:
                     follow_up_actions.append(FollowUpAction(**action))
                     print(f"🔄 DEBUG: Added valid action: {action['label']}")
@@ -167,33 +167,33 @@ def get_default_follow_up_actions() -> List[Dict[str, str]]:
     """Fallback actions when LLM generation fails"""
     return [
         {
-            "label": "Apply for Permit",
-            "prompt": "I want to apply for a permit. Can you guide me through the application process?",
-            "category": "application"
-        },
-        {
-            "label": "Check Status",
-            "prompt": "I need to check the status of my permit or application. How can I do this?",
+            "label": "Review Records",
+            "prompt": "Show me pending records that need review or action.",
             "category": "status"
         },
         {
-            "label": "Schedule Inspection",
-            "prompt": "I need to schedule an inspection for my permit. What are the next steps?",
+            "label": "Conduct Inspection",
+            "prompt": "I need to schedule or complete an inspection for a record.",
             "category": "inspection"
         },
         {
-            "label": "Document Requirements",
-            "prompt": "What documents do I need to submit for my permit application?",
-            "category": "document"
+            "label": "Update Workflow",
+            "prompt": "I need to update a workflow step or move a record to the next stage.",
+            "category": "status"
         },
         {
-            "label": "Calculate Fees",
-            "prompt": "How much will my permit cost? Can you help me calculate the fees?",
+            "label": "Process Payment",
+            "prompt": "I need to review payment information or process fees for a record.",
             "category": "fee"
         },
         {
-            "label": "Get Help",
-            "prompt": "I need additional assistance with my permit questions.",
+            "label": "Review Documents",
+            "prompt": "I need to review submitted documents or attachments for a record.",
+            "category": "document"
+        },
+        {
+            "label": "Manage Users",
+            "prompt": "I need to manage user accounts or department assignments.",
             "category": "general"
         }
     ]

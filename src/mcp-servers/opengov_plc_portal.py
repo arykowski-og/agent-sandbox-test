@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """
-OpenGov Permitting & Licensing MCP Server - COMPLETE VERSION (BACKWARD COMPATIBILITY)
+OpenGov Permitting & Licensing MCP Server - Citizens Portal
 
-This MCP server provides tools to interact with the OpenGov Permitting & Licensing API.
-It supports OAuth2 Client Credentials authentication and provides tools for all API endpoints.
+This MCP server provides tools for citizens to interact with the OpenGov Permitting & Licensing system.
+It includes tools for submitting applications, checking status, uploading documents, and communicating
+with the permitting office.
 
-This is the original complete server maintained for backward compatibility.
-For specific personas, use:
-- opengov_plc_app.py (Government Agents)
-- opengov_plc_portal.py (Citizens)
+This version includes:
+- Application submission and management
+- Status tracking and progress monitoring
+- Document upload and management
+- Payment processing
+- Communication with permitting office
+- Reference data access (permit types, locations, etc.)
+
+Administrative tools are NOT included in this version for security reasons.
 """
 
 import os
@@ -25,7 +31,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize MCP server
-mcp = FastMCP("OpenGov Permitting & Licensing")
+mcp = FastMCP("OpenGov Permitting & Licensing - Citizens Portal")
 
 class OpenGovPLCClient:
     """Client for OpenGov Permitting & Licensing API"""
@@ -171,6 +177,8 @@ async def get_records(
     include_enhanced_details: bool = True
 ) -> Dict:
     """Get a list of records from the community with optional filtering, pagination, and enhanced details
+    
+    For citizens: Access limited to records you are authorized to view (your own applications and associated records).
     
     Args:
         community: The community identifier
@@ -441,18 +449,16 @@ async def get_record(community: str, record_id: str) -> Dict:
 
 @mcp.tool
 async def create_record(community: str, record_data: Dict) -> Dict:
-    """Create a new record"""
+    """Create a new record (permit application)
+    
+    For citizens: Submit a new permit application. This is how you start the permitting process.
+    """
     return await get_client().make_request("POST", "/records", community, json_data=record_data)
 
 @mcp.tool
 async def update_record(community: str, record_id: str, record_data: Dict) -> Dict:
     """Update an existing record"""
     return await get_client().make_request("PUT", f"/records/{encode_path_param(record_id)}", community, json_data=record_data)
-
-@mcp.tool
-async def delete_record(community: str, record_id: str) -> Dict:
-    """Delete a record"""
-    return await get_client().make_request("DELETE", f"/records/{encode_path_param(record_id)}", community)
 
 # RECORD ATTACHMENTS
 
@@ -476,11 +482,6 @@ async def update_record_attachment(community: str, record_id: str, attachment_id
     """Update a record attachment"""
     return await get_client().make_request("PUT", f"/records/{encode_path_param(record_id)}/attachments/{encode_path_param(attachment_id)}", community, json_data=attachment_data)
 
-@mcp.tool
-async def delete_record_attachment(community: str, record_id: str, attachment_id: str) -> Dict:
-    """Delete a record attachment"""
-    return await get_client().make_request("DELETE", f"/records/{encode_path_param(record_id)}/attachments/{encode_path_param(attachment_id)}", community)
-
 # RECORD WORKFLOW STEPS
 
 @mcp.tool
@@ -493,11 +494,6 @@ async def get_record_workflow_step(community: str, record_id: str, step_id: str)
     """Get a specific workflow step"""
     return await get_client().make_request("GET", f"/records/{encode_path_param(record_id)}/workflowSteps/{encode_path_param(step_id)}", community)
 
-@mcp.tool
-async def update_record_workflow_step(community: str, record_id: str, step_id: str, step_data: Dict) -> Dict:
-    """Update a workflow step"""
-    return await get_client().make_request("PUT", f"/records/{encode_path_param(record_id)}/workflowSteps/{encode_path_param(step_id)}", community, json_data=step_data)
-
 # RECORD WORKFLOW STEP COMMENTS
 
 @mcp.tool
@@ -509,11 +505,6 @@ async def get_record_step_comments(community: str, record_id: str, step_id: str)
 async def create_record_step_comment(community: str, record_id: str, step_id: str, comment_data: Dict) -> Dict:
     """Create a comment on a workflow step"""
     return await get_client().make_request("POST", f"/records/{encode_path_param(record_id)}/workflowSteps/{encode_path_param(step_id)}/comments", community, json_data=comment_data)
-
-@mcp.tool
-async def delete_record_step_comment(community: str, record_id: str, step_id: str, comment_id: str) -> Dict:
-    """Delete a workflow step comment"""
-    return await get_client().make_request("DELETE", f"/records/{encode_path_param(record_id)}/workflowSteps/{encode_path_param(step_id)}/comments/{encode_path_param(comment_id)}", community)
 
 # RECORD FORMS
 
@@ -554,11 +545,6 @@ async def add_record_additional_location(community: str, record_id: str, locatio
     """Add an additional location to a record"""
     return await get_client().make_request("POST", f"/records/{encode_path_param(record_id)}/additionalLocations", community, json_data=location_data)
 
-@mcp.tool
-async def remove_record_additional_location(community: str, record_id: str, location_id: str) -> Dict:
-    """Remove an additional location from a record"""
-    return await get_client().make_request("DELETE", f"/records/{encode_path_param(record_id)}/additionalLocations/{encode_path_param(location_id)}", community)
-
 # RECORD APPLICANT AND GUESTS
 
 @mcp.tool
@@ -575,11 +561,6 @@ async def get_record_guests(community: str, record_id: str) -> Dict:
 async def add_record_guest(community: str, record_id: str, guest_data: Dict) -> Dict:
     """Add a guest to a record"""
     return await get_client().make_request("POST", f"/records/{encode_path_param(record_id)}/guests", community, json_data=guest_data)
-
-@mcp.tool
-async def remove_record_guest(community: str, record_id: str, user_id: str) -> Dict:
-    """Remove a guest from a record"""
-    return await get_client().make_request("DELETE", f"/records/{encode_path_param(record_id)}/guests/{encode_path_param(user_id)}", community)
 
 # RECORD CHANGE REQUESTS
 
@@ -614,31 +595,7 @@ async def get_location(community: str, location_id: str) -> Dict:
     """Get a specific location by ID"""
     return await get_client().make_request("GET", f"/locations/{encode_path_param(location_id)}", community)
 
-@mcp.tool
-async def create_location(community: str, location_data: Dict) -> Dict:
-    """Create a new location"""
-    return await get_client().make_request("POST", "/locations", community, json_data=location_data)
-
-@mcp.tool
-async def update_location(community: str, location_id: str, location_data: Dict) -> Dict:
-    """Update a location"""
-    return await get_client().make_request("PUT", f"/locations/{encode_path_param(location_id)}", community, json_data=location_data)
-
-@mcp.tool
-async def get_location_flags(community: str, location_id: str) -> Dict:
-    """Get flags for a location"""
-    return await get_client().make_request("GET", f"/locations/{encode_path_param(location_id)}/flags", community)
-
 # USERS
-
-@mcp.tool
-async def get_users(community: str) -> Dict:
-    """Get a list of users
-    
-    Note: The OpenGov API does not support pagination or search parameters for this endpoint.
-    All users are returned in a single response.
-    """
-    return await get_client().make_request("GET", "/users", community)
 
 @mcp.tool
 async def get_user(community: str, user_id: str) -> Dict:
@@ -654,11 +611,6 @@ async def create_user(community: str, user_data: Dict) -> Dict:
 async def update_user(community: str, user_id: str, user_data: Dict) -> Dict:
     """Update a user"""
     return await get_client().make_request("PUT", f"/users/{encode_path_param(user_id)}", community, json_data=user_data)
-
-@mcp.tool
-async def get_user_flags(community: str, user_id: str) -> Dict:
-    """Get flags for a user"""
-    return await get_client().make_request("GET", f"/users/{encode_path_param(user_id)}/flags", community)
 
 # DEPARTMENTS
 
@@ -703,11 +655,6 @@ async def get_record_type_attachments(community: str, record_type_id: str) -> Di
 async def get_record_type_fees(community: str, record_type_id: str) -> Dict:
     """Get fee configurations for a record type"""
     return await get_client().make_request("GET", f"/recordTypes/{encode_path_param(record_type_id)}/fees", community)
-
-@mcp.tool
-async def get_record_type_document_templates(community: str, record_type_id: str) -> Dict:
-    """Get document template configurations for a record type"""
-    return await get_client().make_request("GET", f"/recordTypes/{encode_path_param(record_type_id)}/documentTemplates", community)
 
 # PROJECTS
 
@@ -756,16 +703,6 @@ async def get_inspection_event(community: str, inspection_event_id: str) -> Dict
     """Get a specific inspection event"""
     return await get_client().make_request("GET", f"/inspectionEvents/{encode_path_param(inspection_event_id)}", community)
 
-@mcp.tool
-async def create_inspection_event(community: str, event_data: Dict) -> Dict:
-    """Create an inspection event"""
-    return await get_client().make_request("POST", "/inspectionEvents", community, json_data=event_data)
-
-@mcp.tool
-async def update_inspection_event(community: str, inspection_event_id: str, event_data: Dict) -> Dict:
-    """Update an inspection event"""
-    return await get_client().make_request("PUT", f"/inspectionEvents/{encode_path_param(inspection_event_id)}", community, json_data=event_data)
-
 # INSPECTION RESULTS
 
 @mcp.tool
@@ -779,16 +716,6 @@ async def get_inspection_result(community: str, inspection_result_id: str) -> Di
     """Get a specific inspection result"""
     return await get_client().make_request("GET", f"/inspectionResults/{encode_path_param(inspection_result_id)}", community)
 
-@mcp.tool
-async def create_inspection_result(community: str, result_data: Dict) -> Dict:
-    """Create an inspection result"""
-    return await get_client().make_request("POST", "/inspectionResults", community, json_data=result_data)
-
-@mcp.tool
-async def update_inspection_result(community: str, inspection_result_id: str, result_data: Dict) -> Dict:
-    """Update an inspection result"""
-    return await get_client().make_request("PUT", f"/inspectionResults/{encode_path_param(inspection_result_id)}", community, json_data=result_data)
-
 # CHECKLIST RESULTS
 
 @mcp.tool
@@ -801,16 +728,6 @@ async def get_checklist_result(community: str, inspection_result_id: str, checkl
     """Get a specific checklist result"""
     return await get_client().make_request("GET", f"/inspectionResults/{encode_path_param(inspection_result_id)}/checklistResults/{encode_path_param(checklist_result_id)}", community)
 
-@mcp.tool
-async def create_checklist_result(community: str, inspection_result_id: str, checklist_data: Dict) -> Dict:
-    """Create a checklist result"""
-    return await get_client().make_request("POST", f"/inspectionResults/{encode_path_param(inspection_result_id)}/checklistResults", community, json_data=checklist_data)
-
-@mcp.tool
-async def update_checklist_result(community: str, inspection_result_id: str, checklist_result_id: str, checklist_data: Dict) -> Dict:
-    """Update a checklist result"""
-    return await get_client().make_request("PUT", f"/inspectionResults/{encode_path_param(inspection_result_id)}/checklistResults/{encode_path_param(checklist_result_id)}", community, json_data=checklist_data)
-
 # INSPECTION TYPE TEMPLATES
 
 @mcp.tool
@@ -822,16 +739,6 @@ async def get_inspection_type_templates(community: str) -> Dict:
 async def get_inspection_type_template(community: str, template_id: str) -> Dict:
     """Get a specific inspection type template"""
     return await get_client().make_request("GET", f"/inspectionTypeTemplates/{encode_path_param(template_id)}", community)
-
-@mcp.tool
-async def get_checklist_templates(community: str, template_id: str) -> Dict:
-    """Get checklist templates for an inspection type template"""
-    return await get_client().make_request("GET", f"/inspectionTypeTemplates/{encode_path_param(template_id)}/checklistTemplates", community)
-
-@mcp.tool
-async def get_checklist_template(community: str, template_id: str, checklist_template_id: str) -> Dict:
-    """Get a specific checklist template"""
-    return await get_client().make_request("GET", f"/inspectionTypeTemplates/{encode_path_param(template_id)}/checklistTemplates/{encode_path_param(checklist_template_id)}", community)
 
 # APPROVAL STEPS
 
@@ -846,11 +753,6 @@ async def get_approval_step(community: str, approval_step_id: str) -> Dict:
     """Get a specific approval step"""
     return await get_client().make_request("GET", f"/approvalSteps/{encode_path_param(approval_step_id)}", community)
 
-@mcp.tool
-async def update_approval_step(community: str, approval_step_id: str, step_data: Dict) -> Dict:
-    """Update an approval step"""
-    return await get_client().make_request("PUT", f"/approvalSteps/{encode_path_param(approval_step_id)}", community, json_data=step_data)
-
 # DOCUMENT STEPS
 
 @mcp.tool
@@ -863,11 +765,6 @@ async def get_document_steps(community: str, limit: int = 100, offset: int = 0) 
 async def get_document_step(community: str, document_step_id: str) -> Dict:
     """Get a specific document generation step"""
     return await get_client().make_request("GET", f"/documentSteps/{encode_path_param(document_step_id)}", community)
-
-@mcp.tool
-async def update_document_step(community: str, document_step_id: str, step_data: Dict) -> Dict:
-    """Update a document generation step"""
-    return await get_client().make_request("PUT", f"/documentSteps/{encode_path_param(document_step_id)}", community, json_data=step_data)
 
 # PAYMENT STEPS
 
@@ -912,17 +809,6 @@ async def get_transaction(community: str, transaction_id: str) -> Dict:
 
 # LEDGER ENTRIES
 
-@mcp.tool
-async def get_ledger_entries(community: str, limit: int = 100, offset: int = 0) -> Dict:
-    """Get ledger entries"""
-    params = {"limit": limit, "offset": offset}
-    return await get_client().make_request("GET", "/ledgerEntries", community, params=params)
-
-@mcp.tool
-async def get_ledger_entry(community: str, ledger_id: str) -> Dict:
-    """Get a specific ledger entry"""
-    return await get_client().make_request("GET", f"/ledgerEntries/{encode_path_param(ledger_id)}", community)
-
 # FILES
 
 @mcp.tool
@@ -946,19 +832,12 @@ async def update_file(community: str, file_id: str, file_data: Dict) -> Dict:
     """Update file metadata"""
     return await get_client().make_request("PUT", f"/files/{encode_path_param(file_id)}", community, json_data=file_data)
 
-@mcp.tool
-async def delete_file(community: str, file_id: str) -> Dict:
-    """Delete a file"""
-    return await get_client().make_request("DELETE", f"/files/{encode_path_param(file_id)}", community)
-
 # ORGANIZATION
 
 @mcp.tool
 async def get_organization(community: str) -> Dict:
     """Get organization information"""
     return await get_client().make_request("GET", "/organization", community)
-
-
 
 if __name__ == "__main__":
     # Run the server
@@ -970,8 +849,8 @@ if __name__ == "__main__":
     # Check for command line argument to use HTTP transport
     if len(sys.argv) > 1 and sys.argv[1] == "--http":
         transport = "streamable-http"
-        print("Starting OpenGov PLC MCP Server on HTTP transport...")
+        print("Starting OpenGov PLC MCP Server (Citizens Portal) on HTTP transport...")
     else:
-        print("Starting OpenGov PLC MCP Server on stdio transport...")
+        print("Starting OpenGov PLC MCP Server (Citizens Portal) on stdio transport...")
     
     mcp.run(transport=transport) 
