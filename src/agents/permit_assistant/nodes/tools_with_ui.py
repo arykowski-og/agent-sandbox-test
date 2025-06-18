@@ -8,7 +8,7 @@ from langgraph.prebuilt import ToolNode
 from langgraph.graph.ui import push_ui_message
 from langchain_core.messages import AIMessage, ToolMessage
 from src.agents.permit_assistant.types import AgentState
-from src.agents.permit_assistant.utils import process_records_for_ui, get_address_info, get_applicant_name, format_date, get_record_type_name
+from src.agents.permit_assistant.utils import process_records_for_ui, get_address_info, get_applicant_name, get_owner_email, format_date, get_record_type_name
 from src.agents.permit_assistant.utils.schema_generator import generate_record_detail_schema, generate_records_table_schema
 
 async def fetch_related_resource(tools, community: str, relationship_link: str, relationship_name: str):
@@ -481,11 +481,8 @@ async def tools_with_ui_node(state: AgentState, tools, model=None):
                                             # Date Submitted - format from UTC to local date (commonFields expects 'dateSubmitted')
                                             "dateSubmitted": format_date(attributes.get("submittedAt")),
                                             
-                                            # Applicant Name - use enhanced relationship data if available
-                                            "applicantName": (
-                                                relationships.get("applicant", {}).get("resolved_name") or
-                                                get_applicant_name(record, included_data)
-                                            ),
+                                            # Owner Email - use enhanced relationship data if available
+                                            "ownerEmail": get_owner_email(record, included_data),
                                             
                                             # Address - use enhanced relationship data if available
                                             "address": (
@@ -495,7 +492,7 @@ async def tools_with_ui_node(state: AgentState, tools, model=None):
                                         }
                                         
                                         # Debug: Show what we extracted
-                                        print(f"🔧 DEBUG: Extracted for record {record.get('id')}: applicantName='{processed_record.get('applicantName')}', address='{processed_record.get('address')}'")
+                                        print(f"🔧 DEBUG: Extracted for record {record.get('id')}: ownerEmail='{processed_record.get('ownerEmail')}', address='{processed_record.get('address')}'")
                                         
                                         # Remove None values to avoid showing empty columns
                                         processed_record = {k: v for k, v in processed_record.items() if v is not None and v != ""}

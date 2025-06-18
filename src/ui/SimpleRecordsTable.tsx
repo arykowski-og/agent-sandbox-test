@@ -172,8 +172,7 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
       { key: 'recordNumber', label: 'Record #', width: '120px' },
       { key: 'recordType', label: 'Record Type', width: '200px' },
       { key: 'dateSubmitted', label: 'Date Submitted', width: '140px' },
-      { key: 'applicantName', label: 'Applicant', width: '180px' },
-      { key: 'address', label: 'Address', width: '250px' },
+      { key: 'address', label: 'Address', width: '300px' },
     ];
 
     // Status field configuration - will be added as the last column
@@ -210,17 +209,29 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
     });
 
     // Start with priority fields that have data (excluding status)
-    const visibleColumns = priorityFields.filter(field => 
-      records.some(record => {
+    const visibleColumns = priorityFields.filter(field => {
+      if (field.key === 'address') {
+        // Check if any record has address information from locationDetails
+        return records.some(record => {
+          const address = getAddressFromRecord(record);
+          return address && address !== '-';
+        });
+      }
+      return records.some(record => {
         const value = record[field.key];
         return value !== null && value !== undefined && value !== '';
-      })
-    );
+      });
+    });
 
     // Add additional fields that have data and aren't already included
+    // Limit to maximum 4 columns (leaving room for status as 5th)
     const priorityKeys = new Set(priorityFields.map(f => f.key));
+    const maxAdditionalColumns = 4 - visibleColumns.length; // Reserve space for status
+    let addedColumns = 0;
+    
     Array.from(allKeys).forEach(key => {
-      if (!priorityKeys.has(key)) {
+      // Skip ownerEmail and other excluded fields
+      if (!priorityKeys.has(key) && key !== 'ownerEmail' && addedColumns < maxAdditionalColumns) {
         // Check if this field has meaningful data in at least one record
         const hasData = records.some(record => {
           const value = record[key];
@@ -233,11 +244,12 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
             width: '150px'
           };
           visibleColumns.push({ key, ...fieldConfig });
+          addedColumns++;
         }
       }
     });
 
-    // Always add status column as the last column if it has data
+    // Always add status column as the last (5th) column if it has data
     const hasStatusData = records.some(record => {
       const value = record[statusField.key];
       return value !== null && value !== undefined && value !== '';
@@ -248,6 +260,90 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
     }
 
     return visibleColumns;
+  };
+
+  // Helper function to extract address from locationDetails
+  const getAddressFromRecord = (record: Record): string => {
+    try {
+      // Try to get address from different possible locations in the record
+      const locationDetails = record.locationDetails;
+      
+      if (locationDetails) {
+        let addressParts: string[] = [];
+        
+        // Check if locationDetails has direct attributes (this is the correct structure based on the API response)
+        if (locationDetails.attributes) {
+          const attrs = locationDetails.attributes;
+          if (attrs.streetNo) addressParts.push(String(attrs.streetNo));
+          if (attrs.streetName) addressParts.push(attrs.streetName);
+          if (attrs.unit) addressParts.push(`Unit ${attrs.unit}`);
+          if (attrs.city) addressParts.push(attrs.city);
+          if (attrs.state) addressParts.push(attrs.state);
+        }
+        // Fallback: Check if locationDetails has recordLocation.attributes structure
+        else if (locationDetails.recordLocation?.attributes) {
+          const attrs = locationDetails.recordLocation.attributes;
+          if (attrs.streetNo) addressParts.push(String(attrs.streetNo));
+          if (attrs.streetName) addressParts.push(attrs.streetName);
+          if (attrs.unit) addressParts.push(`Unit ${attrs.unit}`);
+          if (attrs.city) addressParts.push(attrs.city);
+          if (attrs.state) addressParts.push(attrs.state);
+        }
+        // Fallback: Check if locationDetails has direct properties
+        else {
+          if (locationDetails.streetNumber) addressParts.push(String(locationDetails.streetNumber));
+          if (locationDetails.streetName) addressParts.push(locationDetails.streetName);
+          if (locationDetails.unit) addressParts.push(`Unit ${locationDetails.unit}`);
+          if (locationDetails.city) addressParts.push(locationDetails.city);
+          if (locationDetails.state) addressParts.push(locationDetails.state);
+        }
+        
+        if (addressParts.length > 0) {
+          return addressParts.join(', ');
+        }
+      }
+      
+      // Fallback to existing address field if available
+      if (record.address) {
+        return record.address;
+      }
+      
+      // Fallback to locationAddress if available (from enhanced records)
+      if (record.locationAddress) {
+        return record.locationAddress;
+      }
+      
+      return '-';
+    } catch (error) {
+      console.error('Error extracting address:', error);
+      return '-';
+    }
+  };
+
+  // Helper function to extract owner email from locationDetails
+  const getOwnerEmailFromRecord = (record: Record): string => {
+    try {
+      const locationDetails = record.locationDetails;
+      
+      if (locationDetails?.attributes?.ownerEmail) {
+        return locationDetails.attributes.ownerEmail;
+      }
+      
+      // Fallback to direct ownerEmail field if available
+      if (record.ownerEmail) {
+        return record.ownerEmail;
+      }
+      
+      // Fallback to applicantName if it exists (backwards compatibility)
+      if (record.applicantName) {
+        return record.applicantName;
+      }
+      
+      return '-';
+    } catch (error) {
+      console.error('Error extracting owner email:', error);
+      return '-';
+    }
   };
 
   const visibleFields = generateColumnsFromData(records);
@@ -314,7 +410,16 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
 
   // Helper function to format field values based on field type
   const formatFieldValue = (record: Record, field: { key: string; label: string; width: string }) => {
-    const value = getDisplayValue(record, field.key);
+    let value: string;
+    
+    // Special handling for address field
+    if (field.key === 'address') {
+      value = getAddressFromRecord(record);
+    } else if (field.key === 'ownerEmail') {
+      value = getOwnerEmailFromRecord(record);
+    } else {
+      value = getDisplayValue(record, field.key);
+    }
     
     // Special formatting for specific field types
     if (field.key === 'status') {
@@ -387,6 +492,31 @@ const SimpleRecordsTable: React.FC<RecordsTableProps> = ({ records, community, o
           {value}
         </span>
       );
+    }
+
+    // Email fields (including ownerEmail)
+    if (field.key === 'ownerEmail' || field.key === 'email' || field.key.toLowerCase().includes('email')) {
+      if (value && value !== '-') {
+        return (
+          <a
+            href={`mailto:${value}`}
+            style={{
+              color: '#2563eb',
+              fontSize: '14px',
+              textDecoration: 'none',
+              fontWeight: 400
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.textDecoration = 'underline';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.textDecoration = 'none';
+            }}
+          >
+            {value}
+          </a>
+        );
+      }
     }
 
     // Boolean fields

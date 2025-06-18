@@ -46,6 +46,31 @@ def get_record_type_name(type_id: Optional[str], type_description: Optional[str]
 def get_address_info(record_data: Dict[str, Any], included_data: List[Dict[str, Any]]) -> Optional[str]:
     """Extract address info from included data or relationships"""
     try:
+        # First check if we have locationDetails from MCP server enhancement
+        location_details = record_data.get("locationDetails")
+        if location_details and isinstance(location_details, dict) and location_details.get("attributes"):
+            attrs = location_details["attributes"]
+            print(f"🔧 DEBUG: Found enhanced locationDetails for record {record_data.get('id')}: {list(attrs.keys())}")
+            
+            # Build address from available location attributes
+            address_parts = []
+            if attrs.get("streetNo"):
+                address_parts.append(str(attrs["streetNo"]))
+            if attrs.get("streetName"):
+                address_parts.append(attrs["streetName"])
+            if attrs.get("unit"):
+                address_parts.append(f"Unit {attrs['unit']}")
+            if attrs.get("city"):
+                address_parts.append(attrs["city"])
+            if attrs.get("state"):
+                address_parts.append(attrs["state"])
+            if attrs.get("postalCode"):
+                address_parts.append(attrs["postalCode"])
+            
+            if address_parts:
+                return ", ".join(address_parts)
+        
+        # Fallback to original relationship-based logic
         relationships = record_data.get("relationships", {})
         print(f"🔧 DEBUG: Record {record_data.get('id')} location relationships: {[k for k in relationships.keys() if 'location' in k.lower()]}")
         
@@ -141,15 +166,36 @@ def get_address_info(record_data: Dict[str, Any], included_data: List[Dict[str, 
             # Check if it only has links (OpenGov API pattern)
             elif "links" in location_rel:
                 print(f"🔧 DEBUG: Location relationship only has links: {location_rel['links']}")
-                # For now, return a placeholder indicating location data is available via link
-                return "Address (via API)"
+                # Return None instead of placeholder text when only links are available
+                return None
             
-            # If relationship exists but no usable data, show placeholder
-            return f"Address Available ({location_key})"
+            # If relationship exists but no usable data, return None
+            return None
         
         return None
     except Exception as e:
         print(f"🔧 DEBUG: Error getting address info: {e}")
+        return None
+
+def get_owner_email(record_data: Dict[str, Any], included_data: List[Dict[str, Any]]) -> Optional[str]:
+    """Get owner email from locationDetails or other sources"""
+    try:
+        # First check if we have locationDetails from MCP server enhancement
+        location_details = record_data.get("locationDetails")
+        if location_details and isinstance(location_details, dict) and location_details.get("attributes"):
+            attrs = location_details["attributes"]
+            if attrs.get("ownerEmail"):
+                print(f"🔧 DEBUG: Found owner email in locationDetails for record {record_data.get('id')}: {attrs['ownerEmail']}")
+                return attrs["ownerEmail"]
+        
+        # Fallback to direct ownerEmail field if available
+        if record_data.get("ownerEmail"):
+            return record_data["ownerEmail"]
+        
+        # If no owner email, fall back to applicant name as a last resort
+        return get_applicant_name(record_data, included_data)
+    except Exception as e:
+        print(f"🔧 DEBUG: Error getting owner email: {e}")
         return None
 
 def get_applicant_name(record_data: Dict[str, Any], included_data: List[Dict[str, Any]]) -> Optional[str]:
@@ -236,11 +282,11 @@ def get_applicant_name(record_data: Dict[str, Any], included_data: List[Dict[str
             # Check if it only has links (OpenGov API pattern)
             elif "links" in applicant_rel:
                 print(f"🔧 DEBUG: Applicant relationship only has links: {applicant_rel['links']}")
-                # For now, return a placeholder indicating applicant data is available via link
-                return "Applicant (via API)"
+                # Return None instead of placeholder text when only links are available
+                return None
             
-            # If relationship exists but no usable data, show placeholder
-            return f"Applicant Available ({applicant_key})"
+            # If relationship exists but no usable data, return None
+            return None
         
         return None
     except Exception as e:

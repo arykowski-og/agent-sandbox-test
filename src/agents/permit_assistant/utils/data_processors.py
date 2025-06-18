@@ -1,7 +1,7 @@
 """Data processing utilities for UI components"""
 
 from typing import List, Dict, Any
-from .formatters import format_date, get_record_type_name, get_address_info, get_applicant_name
+from .formatters import format_date, get_record_type_name, get_address_info, get_applicant_name, get_owner_email
 
 def process_records_for_ui(records: List[Dict[str, Any]], included_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Process records to ensure proper field mapping for UI components"""
@@ -31,10 +31,10 @@ def process_records_for_ui(records: List[Dict[str, Any]], included_data: List[Di
             # Date Submitted - format from UTC to local date (commonFields expects 'dateSubmitted')
             "dateSubmitted": format_date(attributes.get("submittedAt")),
             
-            # Applicant Name - extract from relationships and included data (commonFields expects 'applicantName')
-            "applicantName": get_applicant_name(record, included_data),
+            # Owner Email - extract from locationDetails or relationships (UI now expects 'ownerEmail')
+            "ownerEmail": get_owner_email(record, included_data),
             
-            # Address - extract from relationships and included data (commonFields expects 'address')
+            # Address - extract from locationDetails or relationships (commonFields expects 'address')
             "address": get_address_info(record, included_data)
         }
         

@@ -1,210 +1,82 @@
 #!/usr/bin/env python3
 """
-Test script for Permit Assistant Agent
-
-This script tests the integration of the permit assistant with the OpenGov MCP server.
+Test script for the permit assistant to verify it's working correctly
 """
 
-import os
-import sys
 import asyncio
-from typing import Dict, Any
+import sys
+import os
 
-def check_environment():
-    """Check if required environment variables are set"""
-    required_vars = ["OPENAI_API_KEY", "OG_PLC_CLIENT_ID", "OG_PLC_SECRET"]
-    missing_vars = []
-    
-    for var in required_vars:
-        if not os.getenv(var):
-            missing_vars.append(var)
-    
-    if missing_vars:
-        print("❌ Missing required environment variables:")
-        for var in missing_vars:
-            print(f"   - {var}")
-        print("\nPlease set these variables and try again.")
-        return False
-    
-    print("✅ Environment variables are set")
-    return True
+# Add the src directory to the path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-def test_imports():
-    """Test if all required packages can be imported"""
+async def test_permit_assistant():
+    """Test the permit assistant functionality"""
     try:
-        from dotenv import load_dotenv
-        from langgraph.prebuilt import create_react_agent
-        from langchain.chat_models import init_chat_model
-        from langchain_mcp_adapters.client import MultiServerMCPClient
-        print("✅ All required packages imported successfully")
-        return True
-    except ImportError as e:
-        print(f"❌ Failed to import required packages: {e}")
-        print("Run: pip install -r requirements.txt")
-        return False
-
-def test_agent_module():
-    """Test if the permit assistant module can be imported"""
-    try:
-        # Add src to path (go up one level from tests/ to project root, then into src/)
-        project_root = os.path.dirname(os.path.dirname(__file__))
-        src_path = os.path.join(project_root, 'src')
-        if src_path not in sys.path:
-            sys.path.insert(0, src_path)
+        print("🧪 Testing Permit Assistant...")
+        print("=" * 50)
         
-        from agents import permit_assistant
-        print("✅ Permit assistant module imported successfully")
-        
-        # Check if graph is available
-        if hasattr(permit_assistant, 'graph'):
-            print("✅ Permit assistant graph is available")
-            return True
-        else:
-            print("❌ Permit assistant graph not found")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Failed to import permit assistant: {e}")
-        return False
-
-def test_mcp_server_file():
-    """Test if MCP server file exists and is accessible"""
-    mcp_path = os.path.join("src", "mcp-servers", "opengov_plc_mcp_server.py")
-    
-    if os.path.exists(mcp_path):
-        print("✅ OpenGov MCP server file found")
-        return True
-    else:
-        print(f"❌ OpenGov MCP server file not found at: {mcp_path}")
-        return False
-
-async def test_mcp_tools_loading():
-    """Test if MCP tools can be loaded"""
-    try:
-        # Add src to path (go up one level from tests/ to project root, then into src/)
-        project_root = os.path.dirname(os.path.dirname(__file__))
-        src_path = os.path.join(project_root, 'src')
-        if src_path not in sys.path:
-            sys.path.insert(0, src_path)
-        
-        from agents.permit_assistant.tools import get_permit_tools
+        # Test 1: Check if tools are loading correctly
+        print("1. Testing MCP tool loading...")
+        from src.agents.permit_assistant.tools import get_permit_tools
         
         tools = await get_permit_tools()
+        print(f"   ✅ Loaded {len(tools)} tools from MCP server")
         
-        if tools:
-            print(f"✅ Successfully loaded {len(tools)} MCP tools")
-            
-            # List some tool names
-            tool_names = [tool.name for tool in tools[:5]]
-            print(f"   Sample tools: {', '.join(tool_names)}")
-            return True
+        if len(tools) > 0:
+            print("   📋 Available tools:")
+            for i, tool in enumerate(tools[:10]):  # Show first 10 tools
+                if hasattr(tool, 'name'):
+                    print(f"      {i+1}. {tool.name}")
+                else:
+                    print(f"      {i+1}. {type(tool).__name__}")
+            if len(tools) > 10:
+                print(f"      ... and {len(tools) - 10} more tools")
         else:
-            print("❌ No MCP tools loaded")
-            return False
-            
+            print("   ❌ No tools loaded - this might be the issue!")
+            return
+        
+        # Test 2: Check if the graph can be created
+        print("\n2. Testing graph creation...")
+        from src.agents.permit_assistant.graph import create_permit_agent
+        
+        graph = await create_permit_agent()
+        print("   ✅ Graph created successfully")
+        
+        # Test 3: Test a simple interaction
+        print("\n3. Testing permit search interaction...")
+        
+        # Create a test message asking for permits
+        from langchain_core.messages import HumanMessage
+        test_messages = [
+            HumanMessage(content="Search for all permits in presentation-alex community")
+        ]
+        
+        # Invoke the graph
+        result = await graph.ainvoke({
+            "messages": test_messages,
+            "ui": [],
+            "ui_handled": False
+        })
+        
+        print("   📝 Response received:")
+        if "messages" in result:
+            last_message = result["messages"][-1]
+            if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+                print(f"   ✅ LLM called {len(last_message.tool_calls)} tools:")
+                for tool_call in last_message.tool_calls:
+                    print(f"      - {tool_call.get('name', 'unknown')} with args: {tool_call.get('args', {})}")
+                print("   🎉 SUCCESS: The permit assistant is now calling tools correctly!")
+            else:
+                print(f"   ❌ LLM did not call any tools. Response: {last_message.content[:200]}...")
+                print("   This means our fix didn't work - the LLM is still not calling tools.")
+        
+        print("\n🎉 Test completed!")
+        
     except Exception as e:
-        print(f"❌ Failed to load MCP tools: {e}")
-        return False
-
-def test_langgraph_config():
-    """Test if langgraph.json includes the permit assistant"""
-    try:
-        import json
-        
-        # Get the project root directory (go up one level from tests/)
-        project_root = os.path.dirname(os.path.dirname(__file__))
-        langgraph_path = os.path.join(project_root, 'langgraph.json')
-        
-        with open(langgraph_path, 'r') as f:
-            config = json.load(f)
-        
-        graphs = config.get('graphs', {})
-        
-        if 'permit_assistant' in graphs:
-            print("✅ Permit assistant found in langgraph.json")
-            print(f"   Path: {graphs['permit_assistant']}")
-            return True
-        else:
-            print("❌ Permit assistant not found in langgraph.json")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Failed to read langgraph.json: {e}")
-        return False
-
-async def main():
-    """Main test function"""
-    print("Permit Assistant Integration Test")
-    print("=" * 50)
-    
-    tests_passed = 0
-    total_tests = 0
-    
-    # Test 1: Environment variables (informational only)
-    print("📋 Test 1: Environment variables check (informational)")
-    env_check = check_environment()
-    if not env_check:
-        print("ℹ️  Note: Environment variables not set - this is expected for basic testing")
-    
-    print()
-    
-    # Test 2: Package imports
-    total_tests += 1
-    if test_imports():
-        tests_passed += 1
-    
-    print()
-    
-    # Test 3: MCP server file
-    total_tests += 1
-    if test_mcp_server_file():
-        tests_passed += 1
-    
-    print()
-    
-    # Test 4: Agent module
-    total_tests += 1
-    if test_agent_module():
-        tests_passed += 1
-    
-    print()
-    
-    # Test 5: LangGraph config
-    total_tests += 1
-    if test_langgraph_config():
-        tests_passed += 1
-    
-    print()
-    
-    # Test 6: MCP tools loading (requires credentials)
-    if os.getenv("OG_PLC_CLIENT_ID") and os.getenv("OG_PLC_SECRET"):
-        total_tests += 1
-        if await test_mcp_tools_loading():
-            tests_passed += 1
-    else:
-        print("⚠️  Skipping MCP tools test - OpenGov credentials not configured")
-        # Still test MCP tools loading without credentials to verify the server works
-        total_tests += 1
-        if await test_mcp_tools_loading():
-            tests_passed += 1
-    
-    print()
-    print("=" * 50)
-    print(f"Test Results: {tests_passed}/{total_tests} tests passed")
-    
-    if tests_passed == total_tests:
-        print("🎉 All tests passed! Your permit assistant is ready to use.")
-        print("\nNext steps:")
-        print("1. Start LangGraph server: langgraph dev")
-        print("2. Open agent-chat-ui with: http://localhost:3000/chat?assistantId=permit_assistant&apiUrl=http://localhost:8123")
-        print("3. Start chatting with the permit assistant!")
-    else:
-        print("⚠️  Some tests failed. Please check the errors above.")
-        
-        if tests_passed >= 4:  # Core functionality works
-            print("\nCore integration appears to work. Consider:")
-            print("- Setting up OpenGov credentials for full functionality")
-            print("- Testing with real OpenGov API endpoints")
+        print(f"❌ Test failed with error: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(test_permit_assistant()) 
