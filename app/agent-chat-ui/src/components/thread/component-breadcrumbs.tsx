@@ -97,19 +97,11 @@ function getComponentDisplayName(component: any, index: number): string {
     // Handle specific component types with more meaningful labels
     switch (componentName) {
       case 'records_table':
-        // For tables, try to get the type of items from props
+        // For tables, use the same format as the table header: "Active Records (count)"
         const records = component.props?.records;
-        if (records && Array.isArray(records) && records.length > 0) {
-          // Try to determine what type of records these are
-          const firstRecord = records[0];
-          if (firstRecord.recordType) {
-            // Use the record type if available
-            const recordType = typeof firstRecord.recordType === 'string' 
-              ? firstRecord.recordType 
-              : firstRecord.recordType?.name || 'Records';
-            return recordType.includes('Permit') ? 'Permits' : `${recordType}s`;
-          }
-          return 'Records';
+        const community = component.props?.community;
+        if (records && Array.isArray(records)) {
+          return `Active Records${community ? ` (${records.length})` : ''}`;
         }
         return 'Table';
         
